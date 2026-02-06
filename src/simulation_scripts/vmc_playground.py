@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("/Users/haas/Documents/Masters/TACompPhys/FYS4411-Template/src/") # append yout path to the src folder
+sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 import jax
 
 
