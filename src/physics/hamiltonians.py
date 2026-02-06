@@ -61,3 +61,26 @@ class HarmonicOscillator(Hamiltonian):
         pe = 0.0 # to be implemented
 
         return pe + ke
+    
+    def potential_energy(self, r, omega_ho=1.0, omega_z=None):
+        
+        """Potential energy of the system
+        
+        r is the position of the particles, shape (nparticles, dim)
+        Assuming mass = m = 1
+        """
+        if r[0].ndim <=2:  #if the system only have 2 dimensions
+            # Calculating the potential energy
+            V=0.5 * omega_ho * self.backend.sum(r**2, axis=1) 
+        else:
+            if omega_z==None:
+                omega_z = omega_ho 
+
+            V = 0.5 * (omega_ho * self.backend.sum(r[:,:-1]**2, axis=1) + omega_z * self.backend.sum(r[:, -1]**2, axis=1) )
+
+        return V
+    def kinetic_energy(self, wf, r):
+        """Kinetic energy of the system
+        """
+        ke = -0.5 * wf.laplacian(r) # Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
+        return ke
