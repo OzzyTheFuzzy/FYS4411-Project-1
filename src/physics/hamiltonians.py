@@ -59,8 +59,13 @@ class HarmonicOscillator(Hamiltonian):
 
         ke = 0.0 # to be implemented
         pe = 0.0 # to be implemented
+        V = self.potential_energy(r)
+        K_analytic, K_num = self.kinetic_energy(wf, r)
 
-        return pe + ke
+        Hwf = K_analytic+V
+        E_L = 1/wf * Hwf
+
+        return E_L
     
     def potential_energy(self, r, omega_ho=1.0, omega_z=None):
         
@@ -79,8 +84,12 @@ class HarmonicOscillator(Hamiltonian):
             V = 0.5 * (omega_ho * self.backend.sum(r[:,:-1]**2, axis=1) + omega_z * self.backend.sum(r[:, -1]**2, axis=1) )
 
         return V
+    
     def kinetic_energy(self, wf, r):
         """Kinetic energy of the system
         """
-        ke = -0.5 * wf.laplacian(r) # Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
-        return ke
+        alpha = wf.alpha
+
+        K_analytic = -0.5 * np.sum((-2.0 * alpha) + (4.0 * alpha**2) * r**2)
+        K_num = -0.5 * wf.laplacian(r) # Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
+        return K_analytic, K_num
