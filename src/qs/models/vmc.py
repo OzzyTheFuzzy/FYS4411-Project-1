@@ -69,16 +69,18 @@ class VMC:
             setattr(self, func, jax.jit(getattr(self, func)))
         return self
 
-    def wf(self, r, alpha):
+    def wf(self, r, alpha=1.0, beta=None):
         """
         
         r: (N, dim) array so that r_i is a dim-dimensional vector
         alpha: (N, dim) array so that alpha_i is a dim-dimensional vector
 
         return: should return Ψ(alpha, r)
-
+        
         OBS: We strongly recommend you work with the wavefunction in log domain. 
         """
+        
+        log_psi = - alpha * self.backend.sum(r**2, axis=1)
         
         return 
 
