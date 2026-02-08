@@ -1,3 +1,4 @@
+from tracemalloc import start
 from turtle import rt
 import jax
 import jax.numpy as jnp
@@ -57,9 +58,19 @@ class HarmonicOscillator(Hamiltonian):
         """
 
         V = self.potential_energy(r)
+
+        start = time.perf_counter()
         K_num = self.kinetic_energy_numerical(wf, r)
+        end = time.perf_counter()
+
+        print("Time for K_num:", end - start, "seconds")
+
+        start = time.perf_counter()
         K_ana = self.kinetic_energy_analytical(wf, r)
-       
+        end = time.perf_counter()
+
+        print("Time for K_ana:", end - start, "seconds")
+
         E_L_num = K_num + V
         E_L_ana = K_ana + V
 
@@ -85,12 +96,12 @@ class HarmonicOscillator(Hamiltonian):
     
     def kinetic_energy_numerical(self, wf, r):
         
-        """Kinetic energy of the system
-        Returns the numerical kinetic energy of the system nabla^2 psi
+        """Kinetic energy of the system using logspace wf and numerical derivation from torch
+        Returns the numerical kinetic energy of the system 
         """
-        wf_value = wf.value(r)
-        laplacian_wf= wf.laplacian(r)# Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
-        K_num = -0.5 * laplacian_wf / wf_value
+  
+        laplacian_logwf, grad_2_logwf= self.compute_gradients(wf, r)
+        K_num = - 0.5 * (laplacian_logwf + grad_2_logwf)
         return K_num
     
     def kinetic_energy_analytical(self, wf, r):
@@ -109,16 +120,22 @@ class HarmonicOscillator(Hamiltonian):
      
         return K_ana
     
-    def compute_Laplacian(self, wf, r):
+    def compute_gradients(self, wf, r):
+        
         r = r.clone().detach().requires_grad_(True)
 
-        def logpsi_flat_r(r_flat):
-            return self.wf(rt, wf.alpha, wf.beta)
-        
-        r_flat = r.reshape(-1)
 
-        grad = torch.autograd.grad(logpsi_flat_r(r_flat), r_flat, create_graph=True)[0]
+        def logpsi_flat(r_flat):
+            rt = r_flat.view_as(r)  # reshape back to (N, dim)
+            return self.wf(rt, alpha=wf.alpha, beta=wf.beta)  # scalar logΨ
 
-        hessian = torch.functional.hessian(logpsi_flat_r, r_flat)
         
-        return wf * (torch.trace(hessian) + torch.dot(grad, grad)) # wf * (tr(H) + grad^2) is the kinetic energy in log space  
+        r_flat = r.reshape(-1) #flatten r vector to get right dims for torch's functions
+        #logpsi = logpsi_flat(r_flat)              # scalar
+        #psi = torch.exp(logpsi)   
+        #  gradient
+        grad = torch.autograd.grad(logpsi_flat(r_flat), r_flat, create_graph=True)[0]
+        # hessian
+        hessian = torch.autograd.functional.hessian(logpsi_flat, r_flat)
+    
+        return  torch.trace(hessian),  torch.dot(grad, grad) # (tr(H) + grad^2) is the kinetic energy in log space  
