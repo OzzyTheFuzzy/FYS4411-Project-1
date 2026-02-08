@@ -1,7 +1,8 @@
+from turtle import rt
 import jax
 import jax.numpy as jnp
 import numpy as np
-
+import torch 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 
@@ -52,24 +53,17 @@ class HarmonicOscillator(Hamiltonian):
 
     def local_energy(self, wf, r):
         """Local energy of the system
-        
-        Here you can use some methods from the wf class to compute the laplacian and gradients or do some other way you see fit.
-        Note that receiving the wf object is just a suggestion - there might be other ways to do this.
+        Returns both numerical and analytical local energy for comparison
         """
 
         V = self.potential_energy(r)
-        K_ana, K_num = self.kinetic_energy(wf, r)
+        K_num = self.kinetic_energy_numerical(wf, r)
+        K_ana = self.kinetic_energy_analytical(wf, r)
+       
+        E_L_num = K_num + V
+        E_L_ana = K_ana + V
 
-        H_wf_ana = K_ana + V # H * wf for the analytical kinetic energy
-        H_wf_num = K_num + V # H * wf for the numerical kinetic energy
-        wf_value = wf.value(r)
-        E_L_num     = H_wf_num / wf_value # Local energy for the numerical kinetic energy, note that we need to divide by the wave function value to get the local energy
-        E_L_ana_kin = K_ana / wf_value    # Local energy for the analytical kinetic energy, note that we need to divide by the wave function value to get the local energy
-
-        E_L_ana = wf.alpha *self.nparticles + (0.5-2*wf.alpha**2) * self.backend.sum(self.backend.sum(r[:,:] **2, axis=1))
-
-        #define analytical in logspace and numerical kinetic in normal space so you get nabla^2 psi
-        return E_L_num, E_L_ana_kin, E_L_ana
+        return E_L_num, E_L_ana
     
     def potential_energy(self, r, omega_ho=1.0, omega_z=None):
         
@@ -78,22 +72,53 @@ class HarmonicOscillator(Hamiltonian):
         r is the position of the particles, shape (nparticles, dim)
         Assuming mass = m = 1
         """
-        if r[0].ndim <=2:  #if the system only have 2 dimensions
+        if self._dim <=2:  #if the particles has less then dimensions of movement
             # Calculating the potential energy
-            V=0.5 * omega_ho * self.backend.sum(self.backend.sum(r**2, axis=1) )
+            V = 0.5 * omega_ho * self.backend.sum(r**2)
         else:
             if omega_z==None:
                 omega_z = omega_ho 
-
-            V = 0.5 * (omega_ho * self.backend.sum(self.backend.sum(r[:,:-1]**2, axis=1)) + omega_z * self.backend.sum(self.backend.sum(r[:, -1]**2, axis=1)) )
+    
+            V = 0.5 * (omega_ho * self.backend.sum(r[:,:-1]**2) + omega_z * self.backend.sum(r[:, -1]**2))
 
         return V
     
-    def kinetic_energy(self, wf, r):
+    def kinetic_energy_numerical(self, wf, r):
+        
         """Kinetic energy of the system
+        Returns the numerical kinetic energy of the system nabla^2 psi
+        """
+        wf_value = wf.value(r)
+        laplacian_wf= wf.laplacian(r)# Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
+        K_num = -0.5 * laplacian_wf / wf_value
+        return K_num
+    
+    def kinetic_energy_analytical(self, wf, r):
+        """Analytical kinetic energy of the system
+        Returns the analytical kinetic energy of the system nabla^2 psi in logspace
         """
         alpha = wf.alpha
 
-        K_ana = -0.5 * np.sum((-2.0 * alpha) + (4.0 * alpha**2) * r**2)
-        K_num = -0.5 * wf.laplacian(r) # Need to check out the laplacian function in the wf class and how to use it, also check if there are some other methods that might be useful for this
-        return K_ana, K_num
+        if wf.beta == None:  
+             
+            K_ana = -0.5 * self.backend.sum((-2.0 * alpha) + (4.0 * alpha**2) * r**2)
+
+        else:
+            beta = wf.beta
+            K_ana = wf.alpha * self._N *(2+wf.beta) - 2*alpha**2 * self.backend.sum(self.backend.sum(r[:,:-1]**2)) - 2 * alpha**2 * beta**2 * self.backend.sum(self.backend.sum(r[:, -1]**2))
+     
+        return K_ana
+    
+    def compute_Laplacian(self, wf, r):
+        r = r.clone().detach().requires_grad_(True)
+
+        def logpsi_flat_r(r_flat):
+            return self.wf(rt, wf.alpha, wf.beta)
+        
+        r_flat = r.reshape(-1)
+
+        grad = torch.autograd.grad(logpsi_flat_r(r_flat), r_flat, create_graph=True)[0]
+
+        hessian = torch.functional.hessian(logpsi_flat_r, r_flat)
+        
+        return wf * (torch.trace(hessian) + torch.dot(grad, grad)) # wf * (tr(H) + grad^2) is the kinetic energy in log space  

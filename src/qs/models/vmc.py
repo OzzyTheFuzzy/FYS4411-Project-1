@@ -79,10 +79,12 @@ class VMC:
         
         OBS: We strongly recommend you work with the wavefunction in log domain. 
         """
+        if beta==None:
+            log_psi = - alpha * self.backend.sum(r**2)
         
-        log_psi = - alpha * self.backend.sum(r**2, axis=1)
-        
-        return 
+        else:
+            log_psi = -alpha * (self.backend.sum(r[:,:-1]**2) + beta * (self.backend.sum(r[:, -1]**2))) #
+        return log_psi
 
     def prob_closure(self, r, alpha):
         """
@@ -108,9 +110,7 @@ class VMC:
         return 
 
     def grad_wf_closure_jax(self, r, alpha):
-        """
-        computes the gradient of the wavefunction with respect to r, but with jax grad
-        """
+    
 
         return
 
