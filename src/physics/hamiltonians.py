@@ -1,5 +1,4 @@
 from tracemalloc import start
-from turtle import rt
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -126,8 +125,8 @@ class HarmonicOscillator(Hamiltonian):
 
 
         def logpsi_flat(r_flat):
-            rt = r_flat.view_as(r)  # reshape back to (N, dim)
-            return self.wf(rt, alpha=wf.alpha, beta=wf.beta)  # scalar logΨ
+            r_t = r_flat.view_as(r)  # reshape back to (N, dim)
+            return self.wf(r_t, alpha=wf.alpha, beta=wf.beta)  # scalar logΨ
 
         
         r_flat = r.reshape(-1) #flatten r vector to get right dims for torch's functions
