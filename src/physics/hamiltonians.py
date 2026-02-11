@@ -26,10 +26,12 @@ class Hamiltonian:
             case "numpy":
                 self.backend = np
                 self.la = np.linalg
-            case  "jax":
+            case "jax":
                 self.backend = jnp
                 self.la = jnp.linalg
-                # You might also be able to jit some functions here
+            case "torch":
+                self.backend = torch
+                self.la = torch.linalg
             case _: # noqa
                 raise ValueError("Invalid backend:", backend)
 
@@ -120,21 +122,18 @@ class HarmonicOscillator(Hamiltonian):
         return K_ana
     
     def compute_gradients(self, wf, r):
-        
         r = r.clone().detach().requires_grad_(True)
 
-
         def logpsi_flat(r_flat):
-            r_t = r_flat.view_as(r)  # reshape back to (N, dim)
-            return self.wf(r_t, alpha=wf.alpha, beta=wf.beta)  # scalar logΨ
+            r_t = r_flat.view(r.shape)  # reshape back to (N, dim)
+            return wf(r_t)
 
-        
-        r_flat = r.reshape(-1) #flatten r vector to get right dims for torch's functions
-        #logpsi = logpsi_flat(r_flat)              # scalar
-        #psi = torch.exp(logpsi)   
-        #  gradient
-        grad = torch.autograd.grad(logpsi_flat(r_flat), r_flat, create_graph=True)[0]
-        # hessian
+        r_flat = r.view(-1)  # flatten r vector for torch's functions
+        logpsi = logpsi_flat(r_flat)
+        grad = torch.autograd.grad(logpsi, r_flat, create_graph=True)[0]
         hessian = torch.autograd.functional.hessian(logpsi_flat, r_flat)
-    
-        return  torch.trace(hessian),  torch.dot(grad, grad) # (tr(H) + grad^2) is the kinetic energy in log space  
+
+        lap = torch.trace(hessian)
+        grad_sq = torch.dot(grad, grad)
+
+        return lap, grad_sq  # (tr(H) + grad^2) is the kinetic energy in log space
