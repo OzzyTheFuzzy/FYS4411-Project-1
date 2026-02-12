@@ -33,15 +33,17 @@ class WaveFunction:
         a = self.alpha if alpha is None else alpha
         b = self.beta if beta is None else beta
         bk = self.backend
+        
         if b is None:
             return -a * bk.sum(r**2)
         else:
             return -a * (bk.sum(r[:, :-1]**2) + b * bk.sum(r[:, -1]**2))
 
     def log_prob(self, r):
-        
+        # function for calculating log|psi|^2 from log|psi|
+
         logpsi = self(r)      # log|psi|
-        return 2.0 * logpsi                  # log|psi|^2
+        return 2.0 * logpsi   # log|psi|^2
     
 class VMC:
     def __init__(

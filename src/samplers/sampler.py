@@ -56,13 +56,15 @@ class Sampler:
 
         # Config
         state = State(state.positions, state.logp, 0, state.delta)
-        energies = np.zeros(nsamples)
-
+        analytical_energies = np.zeros(nsamples)
+        numerical_energies = np.zeros(nsamples)
         for i in t_range:
-            
+
+            metropolis_state = self.step(wf, state, seed) #
+            numerical_energies[i], analytical_energies[i] = self.hamiltonian.local_energy(wf, metropolis_state) #calculate num and ana energies
             # this is where you call the step method of the specific sampler (metropolis, metropolis-hastings, etc.)
             # then from the new state you calculate the local energies 
-            pass 
+            state = metropolis_state
         if self._logger is not None:
             t_range.clear()
 
@@ -80,13 +82,7 @@ class Sampler:
             "nsamples": nsamples,
         }
 
-        return sample_results, energies
-
-    def step(self, wf, state, seed):
-        """
-        To be implemented by subclasses
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        return sample_results, numerical_energies, analytical_energies
 
     def set_hamiltonian(self, hamiltonian):
 

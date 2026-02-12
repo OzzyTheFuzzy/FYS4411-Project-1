@@ -25,10 +25,10 @@ class State:
     delta: int
 
     def __init__(self, positions, logp, n_accepted=0, delta=0):
-        self.positions = positions
-        self.logp = logp
-        self.n_accepted = n_accepted
-        self.delta = delta
+        self.positions = positions #positions of the particles in the system
+        self.logp = logp #log probability of the current positions
+        self.n_accepted = n_accepted #number of accepted moves
+        self.delta = delta #stepcounter
 
     def create_batch_of_states(self, batch_size):
         """
