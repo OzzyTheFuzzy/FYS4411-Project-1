@@ -59,6 +59,7 @@ class Sampler:
         energies = np.zeros(nsamples)
 
         for i in t_range:
+            
             # this is where you call the step method of the specific sampler (metropolis, metropolis-hastings, etc.)
             # then from the new state you calculate the local energies 
             pass 

@@ -9,7 +9,7 @@ eta = 0.01
 
 training_cycles = 50_000  # this is cycles for the ansatz
 mcmc_alg = "m"
-backend = "numpy"
+backend = "torch"
 optimizer = "gd"
 batch_size = 200
 detailed = True

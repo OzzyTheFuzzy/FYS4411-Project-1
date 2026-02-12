@@ -38,7 +38,11 @@ class WaveFunction:
         else:
             return -a * (bk.sum(r[:, :-1]**2) + b * bk.sum(r[:, -1]**2))
 
-
+    def log_prob(self, r):
+        
+        logpsi = self(r)      # log|psi|
+        return 2.0 * logpsi                  # log|psi|^2
+    
 class VMC:
     def __init__(
         self,
@@ -107,23 +111,6 @@ class VMC:
             setattr(self, func, jax.jit(getattr(self, func)))
         return self
 
-
-    def prob_closure(self, r, alpha):
-        """
-        Return a function that computes |Ψ(alpha, r)|^2
-
-        OBS: We strongly recommend you work with the wavefunction in log domain. 
-        """
-        return 
-
-    def prob(self, r):
-        """
-        Helper for the probability density
-
-        OBS: We strongly recommend you work with the wavefunction in log domain. 
-        """
-        alpha = 0 # get the parameters somehow
-        return self.prob_closure(r, alpha)
 
     def _initialize_vars(self, nparticles, dim, rng, log, logger, logger_level):
         self._N = nparticles
