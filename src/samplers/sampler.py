@@ -13,10 +13,12 @@ jax.config.update("jax_platform_name", "cpu")
 
 
 class Sampler:
-    def __init__(self, rng, scale, logger=None):
+    def __init__(self, rng, scale, hamiltonian, logger=None):
 
         self._logger = logger
         self.results = None
+        self.scale = scale
+        self.set_hamiltonian(hamiltonian)
 
     def sample(self, wf, state, nsamples, nchains=1, seed=None):
         """ 
@@ -61,10 +63,10 @@ class Sampler:
         for i in t_range:
 
             metropolis_state = self.step(wf, state, seed) #
-            numerical_energies[i], analytical_energies[i] = self.hamiltonian.local_energy(wf, metropolis_state) #calculate num and ana energies
-            # this is where you call the step method of the specific sampler (metropolis, metropolis-hastings, etc.)
-            # then from the new state you calculate the local energies 
-            state = metropolis_state
+            r_new = metropolis_state.positions
+            numerical_energies[i], analytical_energies[i] = self.hamiltonian.local_energy(wf, r_new) #calculate num, ana energies
+            state = metropolis_state # update the state for next iteration
+
         if self._logger is not None:
             t_range.clear()
 
@@ -74,15 +76,16 @@ class Sampler:
 
         sample_results = {
             "chain_id": chain_id,
-            "energy": None,
-            "std_error": None,
-            "variance": None,
-            "accept_rate": None,
-            "scale": None,
+            "energy_numerical": numerical_energies,
+            "energy_analytical": analytical_energies,
+            "std_error": np.std(analytical_energies) / np.sqrt(nsamples),
+            "variance": np.var(analytical_energies),
+            "accept_rate": state.n_accepted / nsamples,
+            "scale": self.scale,
             "nsamples": nsamples,
         }
 
-        return sample_results, numerical_energies, analytical_energies
+        return sample_results
 
     def set_hamiltonian(self, hamiltonian):
 

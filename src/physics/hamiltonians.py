@@ -36,8 +36,8 @@ class Hamiltonian:
                 raise ValueError("Invalid backend:", backend)
 
     def local_energy(self, wf, r):
-        """Local energy of the system"""
-        raise NotImplementedError
+        raise NotImplementedError("Subclasses must implement local_energy")
+
 
 
 
@@ -48,10 +48,13 @@ class HarmonicOscillator(Hamiltonian):
         dim,
         int_type,
         backend,
+        omega_ho,
+        omega_z,
     ):
-        
-        
         super().__init__(nparticles, dim, int_type, backend)
+        self.omega_ho = omega_ho
+        self.omega_z = omega_z
+
 
     def local_energy(self, wf, r):
         """Local energy of the system
@@ -77,7 +80,7 @@ class HarmonicOscillator(Hamiltonian):
 
         return E_L_num, E_L_ana
     
-    def potential_energy(self, r, omega_ho=1.0, omega_z=None):
+    def potential_energy(self, r):
         
         """Potential energy of the system
         
@@ -86,12 +89,12 @@ class HarmonicOscillator(Hamiltonian):
         """
         if self._dim <=2:  #if the particles has less then dimensions of movement
             # Calculating the potential energy
-            V = 0.5 * omega_ho * self.backend.sum(r**2)
+            V = 0.5 * self.omega_ho * self.backend.sum(r**2)
         else:
-            if omega_z==None:
-                omega_z = omega_ho 
+            if self.omega_z==None:
+                omega_z = self.omega_ho 
     
-            V = 0.5 * (omega_ho * self.backend.sum(r[:,:-1]**2) + omega_z * self.backend.sum(r[:, -1]**2))
+            V = 0.5 * (self.omega_ho * self.backend.sum(r[:,:-1]**2) + self.omega_z * self.backend.sum(r[:, -1]**2))
 
         return V
     

@@ -1,10 +1,10 @@
 # import copy
 import sys
 import warnings
-
+import torch
 sys.path.insert(0, "../src/")
 
-from qs.utils import errors
+#from qs.utils import errors
 from qs.utils import generate_seed_sequence
 from qs.utils import setup_logger
 from qs.utils import State
@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore", message="divide by zero encountered")
 class QS:
     def __init__(
         self,
-        backend="numpy",
+        backend="torch",
         log=True,
         logger_level="INFO",
         rng=None,
@@ -46,7 +46,7 @@ class QS:
         This is the high level class that ties all the other classes together.
         """
 
-        self._check_logger(log, logger_level)
+        #self._check_logger(log, logger_level)
         
         self._log = log
         self.hamiltonian = None
@@ -56,51 +56,59 @@ class QS:
         self.wf = None
         self._seed = seed
         self.logger = setup_logger(self.__class__.__name__, level=logger_level) if self._log else None
-        
+        self.sampler=None
 
         if rng is None:
-            self.rng = default_rng
+            self.rng = default_rng(self._seed)
+        else:
+            self.rng = rng
 
         # Suggestion of checking flags
         self._is_initialized_ = False
         self._is_trained_ = False
         self._sampling_performed = False
 
-    def set_wf(self, wf_type, nparticles, dim, **kwargs):
-        """
-        Set the wave function to be used for sampling.
-        For now we only support the VMC.
-        Successfully setting the wave function will also initialize it 
-        (this is because we expect the VMC class to initialize the variational parameters but you have to implement this yourself).
-        """
-
-        # check VMC script
+    def set_wf(self, wf_type, nparticles, dim, ):
         self._N = nparticles
         self._dim = dim
         self._wf_type = wf_type
 
+        # Create the wavefunction object
+        self.wf = VMC(nparticles=nparticles, dim=dim, backend=self._backend)
 
         self._is_initialized_ = True
 
-    def set_hamiltonian(self, type_, int_type, **kwargs):
+    def set_hamiltonian(self, type_, int_type, omega_ho, omega_z=None):
         """
         Set the hamiltonian to be used for sampling.
         For now we only support the Harmonic Oscillator.
-
-        Hamiltonian also needs to be propagated to the sampler if you at some point collect the local energy there.
         """
+        self.hamiltonian = HO(nparticles=self._N, dim=self._dim, int_type=int_type, backend=self._backend, omega_ho=omega_ho, omega_z=omega_z)
 
-        # check HO script
+        if self.sampler is not None: #such that if we set the hamiltonian after setting the sampler, we update the sampler with the new hamiltonian
+            self.sampler.set_hamiltonian(self.hamiltonian)
+            
+    def _make_initial_state(self):
+        # Start positions near origin (Gaussian). Shape: (N, dim)
+        
+        positions = torch.randn(self._N, self._dim, dtype=torch.float64)
 
+        # Wavefunction log-probability at positions 
+        logp = 2 * self.wf(positions) 
+
+        return State(positions=positions, logp=logp, n_accepted=0, delta=0)
 
     def set_sampler(self, mcmc_alg, scale=0.5):
-        """
-        Set the MCMC algorithm to be used for sampling.
-        """
+
         self.mcmc_alg = mcmc_alg
         self._scale = scale
 
-        # check metropolis sampler script
+        # Create sampler instance (only Metropolis supported for now)
+        self.sampler = Metro(rng=self.rng, scale=scale, logger=self.logger)
+
+        # If Hamiltonian already set, propagate it
+        if self.hamiltonian is not None:
+            self.sampler.set_hamiltonian(self.hamiltonian)
 
 
     def set_optimizer(self, optimizer, eta, **kwargs):
@@ -163,51 +171,20 @@ class QS:
         self._is_initialized() # check if the system is initialized
         self._is_trained() # check if the system is trained
 
-        # Suggestion of things to display in the results
-        system_info = {
-            "nparticles": self._N,
-            "dim": self._dim,
-            "eta": self._eta,
-            "mcmc_alg": self.mcmc_alg,
-            "training_cycles": self._training_cycles,
-            "training_batch": self._training_batch,
-            "Opti": self._optimizer.__class__.__name__,
-        }
-
-        system_info = pd.DataFrame(system_info, index=[0])
-
-        #OBS: this should actually be returned from the sampler sample method. This is as is below just a placeholder
-        sample_results = {
-            "chain_id": None,
-            "energy": None,
-            "std_error": None,
-            "variance": None,
-            "accept_rate": None,
-            "scale": None,
-            "nsamples": nsamples,
-        }
-        sample_results = pd.DataFrame(sample_results, index=[0])
-
-
-        system_info_repeated = system_info.loc[
-            system_info.index.repeat(len(sample_results))
-        ].reset_index(drop=True)
-
-        self._results = pd.concat([system_info_repeated, sample_results], axis=1)
-
+        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed) # call the sample method from the sampler class and store the results in self._results
         return self._results
     
 
     def _is_initialized(self):
         if not self._is_initialized_:
             msg = "A call to 'init' must be made before training"
-            raise errors.NotInitialized(msg)
+            raise ValueError(msg)
 
     def _is_trained(self):
         if not self._is_trained_:
             msg = "A call to 'train' must be made before sampling"
-            raise errors.NotTrained(msg)
-
+            raise ValueError(msg)
+"""
     def _sampling_performed(self):
         if not self._is_trained_:
             msg = "A call to 'sample' must be made in order to access results"
@@ -218,4 +195,4 @@ class QS:
             raise TypeError("'log' must be True or False")
 
         if not isinstance(logger_level, str):
-            raise TypeError("'logger_level' must be passed as str")
+            raise TypeError("'logger_level' must be passed as str") """
