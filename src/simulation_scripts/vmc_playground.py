@@ -32,7 +32,7 @@ system.set_wf(
 system.set_sampler(mcmc_alg=config.mcmc_alg, scale=1.0)
 
 # choose the hamiltonian
-system.set_hamiltonian(type_="ho", int_type="Coulomb", omega=1.0)
+system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
 
 # choose the optimizer, learning rate, and other properties depending on the optimizer
 system.set_optimizer(
