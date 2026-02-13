@@ -18,15 +18,27 @@ class Metropolis(Sampler):
         state: the current state of the Markov chain
         seed: the random seed for reproducibility
         """
-        
-        r_prop = state.positions + self.scale * self.rng.normal(state.positions.shape) # propose new positions
-        logp_prop = wf.log_prob(r_prop) #find the log probability of the proposed positions
-        log_alpha = logp_prop - state.logp # calculate the log acceptance probability
 
-        u = self.rng.uniform() #pick a random number between 0 and 1
-        accept = np.log(u) < min(0.0, float(log_alpha)) #accept is either true or false
+        # Choose one random particle to move
+        n_particles = state.positions.shape[0]
+        particle_idx = self.rng.integers(0, n_particles)
+
+        # Create proposed configuration with all particles
+        r_prop = state.positions.copy()
+        log_prop_old= wf.log_prob_single(r_prop[particle_idx]) # find the log probability of the current positions of the particle we want to move
+        
+        r_prop[particle_idx] = state.positions[particle_idx] + self.scale * self.rng.normal(state.positions[particle_idx].shape)
+        logp_prop_new = wf.log_prob_single(r_prop[particle_idx])    # find the log probability of the proposed positions
+        
+        log_alpha = logp_prop_new - log_prop_old        # calculate the log acceptance probability
+
+        u = self.rng.uniform()                          # pick a random number between 0 and 1
+        accept = np.log(u) < min(0.0, float(log_alpha)) # accept is either true or false
         new_positions = np.where(accept, r_prop, state.positions) # update positions if accept=true
-        new_logp = np.where(accept, logp_prop, state.logp) # update log probability if accepted, otherwise keep the old one
+
+        log_prop_new_total = state.logp - log_prop_old + logp_prop_new #calculate the new total log probability if we accept the move
+        new_logp = np.where(accept, log_prop_new_total, state.logp) # update log probability if accepted, otherwise keep the old one
+
         new_n_accepted = state.n_accepted + accept # update the number of accepted moves
 
         new_state = State(positions=new_positions, logp=new_logp, n_accepted=new_n_accepted, delta=state.delta + 1)

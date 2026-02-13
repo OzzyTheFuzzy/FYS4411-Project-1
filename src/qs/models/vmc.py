@@ -45,6 +45,19 @@ class WaveFunction:
         logpsi = self(r)      # log|psi|
         return 2.0 * logpsi   # log|psi|^2
     
+    def log_prob_single(self, r_single_wf, alpha=None, beta=None):
+        """Calculate log|psi|^2 for a single particle"""
+
+        a = self.alpha if alpha is None else alpha
+        b = self.beta if beta is None else beta
+        bk = self.backend
+        
+        if b is None:
+            return -2 * a * bk.sum(r_single_wf**2)
+        else:
+            return -2 * a * (bk.sum(r_single_wf[:-1]**2) + b * r_single_wf[-1]**2) #returns logprob for a single particle with 3 dimensions
+        
+    
 class VMC:
     def __init__(
         self,
