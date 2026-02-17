@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 import jax
-
+import numpy as np
 
 from qs import quantum_state
 import config
@@ -29,7 +29,7 @@ system.set_wf(
 )
 
 # choose the sampler algorithm and scale
-system.set_sampler(mcmc_alg=config.mcmc_alg, scale=0.0075)
+system.set_sampler(mcmc_alg=config.mcmc_alg, scale=0.2)
 
 # choose the hamiltonian
 system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
@@ -39,13 +39,15 @@ system.set_optimizer(
     optimizer=config.optimizer,
     eta=config.eta,
 )
-
+alpha_array = np.linspace(0.5, 0.99, 3) # array of alpha values to train on
+print(alpha_array)
 # train the system, meaning we find the optimal variational parameters for the wave function
 system.train(
     max_iter=config.training_cycles,
     batch_size=config.batch_size,
-    seed=config.seed,
+    alpha_array=alpha_array,
 )
+
 
 # now we get the results or do whatever we want with them
 results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)

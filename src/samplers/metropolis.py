@@ -11,6 +11,7 @@ class Metropolis(Sampler):
     def __init__(self, rng, scale, logger=None):
         super().__init__(rng, scale, logger)
         self.rng = rng
+        
     def _step(self, wf, state, seed):
         """One step of the random walk Metropolis algorithm
 

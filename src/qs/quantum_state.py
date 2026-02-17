@@ -121,7 +121,7 @@ class QS:
         self._optimizer = opt.Gd(eta=eta)
 
 
-    def train(self, max_iter, batch_size, **kwargs):
+    def train(self, max_iter, batch_size, alpha_array):
         """
         Train the wave function parameters.
         Here you should calculate sampler statistics and update the wave function parameters based on the derivative of the (statistical) local energy.
@@ -143,23 +143,50 @@ class QS:
 
         steps_before_optimize = batch_size
 
-        epoch = 0
-        for _ in t_range:
-            # Here you collect batch_size samples and calculate the local energy
-            # After you have collected batch_size samples, you update the parameters of the wave function
+        state= self._make_initial_state() # make initial state for the sampler
+        
+        self.alpha_array = alpha_array  # store for plotting
+        self.mean_num_energies = []
+        self.mean_ana_energies = []
+
+        for alpha in alpha_array:
+            self.wf.alpha = alpha # update the variational parameter in the wave function
+
+            num_energy_list = []
+            ana_energy_list = []
+
             
+            for i in range(max_iter):
+                # for each alpha we calculate the energy with vmc
+                state = self.sampler.step(self.wf, state ,self._seed) # perform one step of the sampler
+                r_new = state.positions
+
+                num_energy, ana_energy = self.hamiltonian.local_energy(self.wf, r_new) #calculate num, ana energies for new positions
+                num_energy_list.append(num_energy.detach())
+                ana_energy_list.append(ana_energy.detach())
+
+            # calculate the mean energy for the current alpha
+            mean_num_energy = np.mean(num_energy_list)
+            mean_ana_energy = np.mean(ana_energy_list)
+
+            # store the mean energies for the current alpha globally
+            self.mean_num_energies.append(mean_num_energy)
+            self.mean_ana_energies.append(mean_ana_energy)
             
+
+            """ add later
             steps_before_optimize -= 1
             if steps_before_optimize == 0:
                 epoch += 1
-            
+
+        a
             
                 # Make Descent step with optimizer
 
             
                 steps_before_optimize = batch_size
+                """
 
-        
         self._is_trained_ = True
         if self.logger is not None:
             self.logger.info("Training done")
