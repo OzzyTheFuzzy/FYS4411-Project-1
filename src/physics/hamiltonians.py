@@ -67,13 +67,13 @@ class HarmonicOscillator(Hamiltonian):
         K_num = self.kinetic_energy_numerical(wf, r)
         end = time.perf_counter()
 
-        print("Time for K_num:", end - start, "seconds")
+        #print("Time for K_num:", end - start, "seconds")
 
         start = time.perf_counter()
         K_ana = self.kinetic_energy_analytical(wf, r)
         end = time.perf_counter()
 
-        print("Time for K_ana:", end - start, "seconds")
+        #print("Time for K_ana:", end - start, "seconds")
 
         E_L_num = K_num + V
         E_L_ana = K_ana + V
@@ -129,7 +129,7 @@ class HarmonicOscillator(Hamiltonian):
 
         def logpsi_flat(r_flat):
             r_t = r_flat.view(r.shape)  # reshape back to (N, dim)
-            return wf(r_t)
+            return wf.wf(r_t)
 
         r_flat = r.view(-1)  # flatten r vector for torch's functions
         logpsi = logpsi_flat(r_flat)

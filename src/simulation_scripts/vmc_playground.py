@@ -29,7 +29,7 @@ system.set_wf(
 )
 
 # choose the sampler algorithm and scale
-system.set_sampler(mcmc_alg=config.mcmc_alg, scale=1.0)
+system.set_sampler(mcmc_alg=config.mcmc_alg, scale=0.0075)
 
 # choose the hamiltonian
 system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)

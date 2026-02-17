@@ -139,21 +139,22 @@ class VMC:
         self._logger_level = logger_level
         self._rng = rng if rng else np.random.default_rng()
 
-    def _initialize_variational_params(self, rng=None):
+    def _initialize_variational_params(self, rng=None, init_alpha=0.5, init_beta=None):
         # Initialize variational parameters in the correct range with the correct shape
         # Create `alpha` (per-particle, per-dimension) and optional `beta`.
         rng = rng if rng is not None else self._rng
 
-        init_alpha = 0.5
-        beta = None
 
         if self.backend is torch:
             # use float64 for numerical parity with jax's x64 mode
-            alpha = torch.full((self._N, self._dim), float(init_alpha), dtype=torch.float64)
+            alpha = torch.tensor(init_alpha, dtype=torch.float64)
+            beta = torch.tensor(init_beta, dtype=torch.float64) if init_beta is not None else None
         elif self.backend is jnp:
-            alpha = jnp.full((self._N, self._dim), init_alpha)
+            alpha = jnp.array(init_alpha)
+            beta = jnp.array(init_beta) if init_beta is not None else None
         else:
-            alpha = np.full((self._N, self._dim), init_alpha, dtype=float)
+            alpha = init_alpha  # Just a Python float for numpy
+            beta = init_beta
 
         self.alpha = alpha
         self.beta = beta
@@ -166,7 +167,6 @@ class VMC:
         self.params["alpha"] = self.alpha
         self.params["beta"] = self.beta
 
-        # Attach a proper WaveFunction instance so `wf.alpha` and `wf(r)` work.
         # Attach a WaveFunction instance using the selected backend
         self.wf = WaveFunction(self.backend, self.alpha, self.beta)
 

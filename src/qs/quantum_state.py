@@ -93,8 +93,8 @@ class QS:
         
         positions = torch.randn(self._N, self._dim, dtype=torch.float64)
 
-        # Wavefunction log-probability at positions 
-        logp = 2 * self.wf(positions) 
+        # Wavefunction log-probability at positions. self.wf is a VMC object
+        logp = self.wf.wf.log_prob(positions)  
 
         return State(positions=positions, logp=logp, n_accepted=0, delta=0)
 
