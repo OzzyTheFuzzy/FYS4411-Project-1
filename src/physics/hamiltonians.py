@@ -81,22 +81,14 @@ class HarmonicOscillator(Hamiltonian):
         return E_L_num, E_L_ana
     
     def potential_energy(self, r):
-        
-        """Potential energy of the system
-        
-        r is the position of the particles, shape (nparticles, dim)
-        Assuming mass = m = 1
-        """
-        if self._dim <=2:  #if the particles has less then dimensions of movement
-            # Calculating the potential energy
-            V = 0.5 * self.omega_ho * self.backend.sum(r**2)
-        else:
-            if self.omega_z==None:
-                omega_z = self.omega_ho 
-    
-            V = 0.5 * (self.omega_ho * self.backend.sum(r[:,:-1]**2) + self.omega_z * self.backend.sum(r[:, -1]**2))
+        if self._dim <= 2:
+            return 0.5 * self.omega_ho * self.backend.sum(r**2)
 
-        return V
+        omega_z = self.omega_ho if (self.omega_z is None) else self.omega_z
+        return 0.5 * (
+            self.omega_ho * self.backend.sum(r[:, :-1]**2)
+            + omega_z * self.backend.sum(r[:, -1]**2)
+        )
     
     def kinetic_energy_numerical(self, wf, r):
         
@@ -109,6 +101,7 @@ class HarmonicOscillator(Hamiltonian):
         return K_num
     
     def kinetic_energy_analytical(self, wf, r):
+        
         """Analytical kinetic energy of the system
         Returns the analytical kinetic energy of the system nabla^2 psi in logspace
         """
@@ -116,7 +109,8 @@ class HarmonicOscillator(Hamiltonian):
 
         if wf.beta == None:  
              
-            K_ana = -0.5 * self.backend.sum((-2.0 * alpha) + (4.0 * alpha**2) * r**2)
+            K_ana = -0.5 * (-2.0 * alpha * self._N * self._dim + 4.0 * alpha**2 * self.backend.sum(r**2))
+
 
         else:
             beta = wf.beta

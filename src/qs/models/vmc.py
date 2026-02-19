@@ -46,6 +46,7 @@ class WaveFunction:
         return 2.0 * logpsi   # log|psi|^2
     
     def log_prob_single(self, r_single_wf, alpha=None, beta=None):
+        
         """Calculate log|psi|^2 for a single particle"""
 
         a = self.alpha if alpha is None else alpha
