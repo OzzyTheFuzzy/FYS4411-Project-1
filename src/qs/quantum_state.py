@@ -153,7 +153,7 @@ class QS:
             for i in range(max_iter):
 
 
-                # for each alpha we calculate the energy with vmc
+                # for each alpha we calculate the energy with VMC
                 state = self.sampler.step(self.wf, state ,self._seed) # perform one step of the sampler
                 r_new = state.positions
 
@@ -175,7 +175,7 @@ class QS:
             if steps_before_optimize == 0:
                 epoch += 1
 
-        a
+        
             
                 # Make Descent step with optimizer
 
@@ -186,11 +186,10 @@ class QS:
       
         # Picking out the alpha that gave the lowest energy
         best_idx = np.argmin(self.mean_ana_energies)
-        print(f'Best alpha: {self.alpha_array[best_idx]}, Best energy: {self.mean_ana_energies[best_idx]}')
         a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64) # convert alpha to tensor for use in wave function
 
-        self.wf.alpha = a_tensor # update the variational parameter in the wave function
-        self.wf.wf.alpha = a_tensor # update WaveFunction.alpha 
+        self.wf.alpha = a_tensor # update to the best variational parameter in the wave function 
+        self.wf.wf.alpha = a_tensor # update WaveFunction.alpha to the best variational parameter
   
         self._is_trained_ = True
         if self.logger is not None:

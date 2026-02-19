@@ -6,7 +6,6 @@ dim = 3
 nsamples = int(2**15)  # 2**18 = 262144
 nchains = 1 # number of Markov chains. When you parallelize, you can set this to the number of cores. Note you will have to implement this yourself.
 eta = 0.01
-
 training_cycles = 5_000  # this is cycles for the ansatz
 mcmc_alg = "m"
 backend = "torch"

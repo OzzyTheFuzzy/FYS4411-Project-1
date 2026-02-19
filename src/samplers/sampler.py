@@ -70,18 +70,16 @@ class Sampler:
             t_range.clear()
 
 
-        # calculate energy, error, variance, acceptance rate, and other things you want to display in the results
-    
-
         sample_results = {
             "chain_id": chain_id,
-            "energy_numerical":  np.mean(numerical_energies),
-            "energy_analytical": np.mean(analytical_energies),
-            "std_error": np.std(analytical_energies) / np.sqrt(nsamples),
-            "variance": np.var(analytical_energies),
-            "accept_rate": state.n_accepted / nsamples,
-            "scale": self.scale,
+            "energy_numerical":  np.mean(numerical_energies), # calculate mean numerical energy
+            "energy_analytical": np.mean(analytical_energies), # calculate mean analytical energy
+            "std_error": np.std(analytical_energies) / np.sqrt(nsamples), # calculate standard error of the mean for analytical energies
+            "variance": np.var(analytical_energies), # calculate variance of the analytical energies
+            "accept_rate": state.n_accepted / nsamples, # calculate acceptance rate
+            "scale": self.scale, 
             "nsamples": nsamples,
+            "alpha": wf.alpha.item(), # get the alpha value from the wave function
         }
 
         return sample_results
