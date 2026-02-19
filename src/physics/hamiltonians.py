@@ -49,7 +49,7 @@ class HarmonicOscillator(Hamiltonian):
         int_type,
         backend,
         omega_ho,
-        omega_z,
+        omega_z, 
     ):
         super().__init__(nparticles, dim, int_type, backend)
         self.omega_ho = omega_ho
@@ -67,13 +67,10 @@ class HarmonicOscillator(Hamiltonian):
         K_num = self.kinetic_energy_numerical(wf, r)
         end = time.perf_counter()
 
-        #print("Time for K_num:", end - start, "seconds")
 
         start = time.perf_counter()
         K_ana = self.kinetic_energy_analytical(wf, r)
         end = time.perf_counter()
-
-        #print("Time for K_ana:", end - start, "seconds")
 
         E_L_num = K_num + V
         E_L_ana = K_ana + V
@@ -82,12 +79,12 @@ class HarmonicOscillator(Hamiltonian):
     
     def potential_energy(self, r):
         if self._dim <= 2:
-            return 0.5 * self.omega_ho * self.backend.sum(r**2)
+            return 0.5 * self.omega_ho**2 * self.backend.sum(r**2)
 
         omega_z = self.omega_ho if (self.omega_z is None) else self.omega_z
         return 0.5 * (
-            self.omega_ho * self.backend.sum(r[:, :-1]**2)
-            + omega_z * self.backend.sum(r[:, -1]**2)
+            self.omega_ho**2 * self.backend.sum(r[:, :-1]**2)
+            + omega_z**2 * self.backend.sum(r[:, -1]**2)
         )
     
     def kinetic_energy_numerical(self, wf, r):

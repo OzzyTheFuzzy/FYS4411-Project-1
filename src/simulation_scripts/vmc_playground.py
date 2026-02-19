@@ -1,5 +1,5 @@
 import sys
-
+import matplotlib.pyplot as plt
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 import jax
 import numpy as np
@@ -39,8 +39,8 @@ system.set_optimizer(
     optimizer=config.optimizer,
     eta=config.eta,
 )
-alpha_array = np.linspace(0.5, 0.99, 3) # array of alpha values to train on
-print(alpha_array)
+alpha_array = np.array([0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) # array of alpha values to train on
+
 # train the system, meaning we find the optimal variational parameters for the wave function
 system.train(
     max_iter=config.training_cycles,
@@ -53,5 +53,17 @@ system.train(
 results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
 
 # display the results
-print(results)
+alphas = alpha_array
+energies = np.array(system.mean_ana_energies)  # or mean_num_energies
 
+plt.figure()
+plt.plot(alphas, energies, marker="o")
+plt.xlabel("Alpha")
+plt.ylabel("Energy")
+plt.title("Energy vs Alpha")
+plt.grid(True)
+
+# Mark best alpha
+best_idx = np.argmin(energies)
+plt.scatter(alphas[best_idx], energies[best_idx])
+plt.show()

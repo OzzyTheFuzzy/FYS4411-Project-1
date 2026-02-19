@@ -160,8 +160,7 @@ class QS:
                 num_energy, ana_energy = self.hamiltonian.local_energy(self.wf, r_new) #calculate num, ana energies for new positions
                 num_energy_list.append(num_energy.detach())
                 ana_energy_list.append(ana_energy.detach())
-                if i % 1000 == 0:
-                    print(f"Step {i}, positions: {r_new}, accept rate so far: {state.n_accepted}/{state.delta}")
+
             # calculate the mean energy for the current alpha
             mean_num_energy = np.mean(num_energy_list)
             mean_ana_energy = np.mean(ana_energy_list)
@@ -183,12 +182,16 @@ class QS:
             
                 steps_before_optimize = batch_size
                 """
-        # DEBUG
-        print(f"Alpha array was: {self.alpha_array}")
-        print(f"Mean energies were: {self.mean_ana_energies} and {self.mean_num_energies}")
-
+        
+      
+        # Picking out the alpha that gave the lowest energy
         best_idx = np.argmin(self.mean_ana_energies)
-        print(f"Best alpha: {self.alpha_array[best_idx]}")
+        print(f'Best alpha: {self.alpha_array[best_idx]}, Best energy: {self.mean_ana_energies[best_idx]}')
+        a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64) # convert alpha to tensor for use in wave function
+
+        self.wf.alpha = a_tensor # update the variational parameter in the wave function
+        self.wf.wf.alpha = a_tensor # update WaveFunction.alpha 
+  
         self._is_trained_ = True
         if self.logger is not None:
             self.logger.info("Training done")
@@ -197,8 +200,7 @@ class QS:
     def sample(self, nsamples, nchains=1, seed=None):
         """helper for the sample method from the Sampler class"""
             # DEBUG
-        print(f"VMC alpha: {self.wf.alpha}")
-        print(f"WaveFunction alpha: {self.wf.wf.alpha}")
+
         self._is_initialized() # check if the system is initialized
         self._is_trained() # check if the system is trained
 

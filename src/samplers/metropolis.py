@@ -45,8 +45,6 @@ class Metropolis(Sampler):
         new_n_accepted = state.n_accepted + accept # update the number of accepted moves
 
         new_state = State(positions=new_positions, logp=new_logp, n_accepted=new_n_accepted, delta=state.delta + 1)
-        if state.delta < 5:
-            print(f"log_prop_old: {log_prop_old:.4f}, logp_prop_new: {logp_prop_new:.4f}, log_alpha: {log_alpha:.4f}")
 
         return new_state
 

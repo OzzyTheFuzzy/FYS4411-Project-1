@@ -108,6 +108,7 @@ class VMC:
             raise ValueError("Invalid backend:", backend)
 
         return self
+    
     def _jit_functions(self):
         """JIT commonly used functions when using the JAX backend.
 
@@ -140,7 +141,7 @@ class VMC:
         self._logger_level = logger_level
         self._rng = rng if rng else np.random.default_rng()
 
-    def _initialize_variational_params(self, rng=None, init_alpha=0.5, init_beta=None):
+    def _initialize_variational_params(self, rng=None, init_alpha=1, init_beta=None):
         # Initialize variational parameters in the correct range with the correct shape
         # Create `alpha` (per-particle, per-dimension) and optional `beta`.
         rng = rng if rng is not None else self._rng
