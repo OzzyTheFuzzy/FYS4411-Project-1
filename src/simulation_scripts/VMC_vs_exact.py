@@ -54,33 +54,64 @@ def VMC_vs_exact():
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
     """
 
-    alpha_array = np.array([0.45, 0.5, 0.55]) # array of alpha values to train on
-    dimensions = np.array([1, 2, 3]) # dimensions
-    nparticles_array = np.array([1, 10, 100]) # number of particles
+    alpha_array = np.array([0.2, 0.5]) # array of alpha values to train on
+    dimensions = np.array([1, 2]) # dimensions
+    nparticles_array = np.array([1, 10]) # number of particles
     omega = 1.0 # frequency of the harmonic oscillator
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
     energies_exact = np.zeros((len(dimensions), len(nparticles_array))) # array to store the exact energies
 
+    # Loop over dimensions and number of particles, calculate the energies and store them in the arrays
     for d in range(len(dimensions)):
         for n in range(len(nparticles_array)):
-            print(f"Calculating energy for d={dimensions[d]}, n={nparticles_array[n]}...")
+            print(f"Calculating energy for d={dimensions[d]}, n={nparticles_array[n]}")
             energy_analytical, energy_numerical, alpha = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
             
             print(f'alpha = {alpha}') # print the alpha that gave the lowest energy
 
             energies_vmc[d, n] = energy_analytical #store the vmc energy
             energies_exact[d, n] = exact_energy(nparticles_array[n], omega, dimensions[d]) #store the exact energy
+    # Create matching grids
+    dim_grid, n_grid = np.meshgrid(dimensions, nparticles_array, indexing="ij")
 
+    # Flatten everything
+    dimensions_flat = dim_grid.flatten()
+    n_particles_flat = n_grid.flatten()
+    energies_vmc_flat = energies_vmc.flatten()
+    energies_exact_flat = energies_exact.flatten()
+    np.savetxt("../../data/vmc_results_test.2d.1.10.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
+    header="dimension n_particles energy_vmc energy_exact"     )
     
-    # Plot the results
-    fig, ax = plt.subplots()
-    for d in dimensions:
-        ax.plot(nparticles_array, energies_exact[d], label=f"Exact energy, d={d}")
-        ax.plot(nparticles_array, energies_vmc[d], label=f"VMC energy, d={d}")
-    ax.set_xlabel("Number of particles")
-    ax.set_ylabel("Energy")
-    ax.legend()
-    plt.show()
+    return 0
 
 VMC_vs_exact()
+
+
+def plot_VMC_vs_exact():
+    """
+    Plot the VMC vs Exact energies for all dimensions and number of particles
+    
+    """
+    data = np.loadtxt("../../data/vmc_results_test.2d.1.10.txt", skiprows=1) # load the data from the file, skip the header
+    dimensions = data[:, 0]
+    n_particles = data[:, 1]
+    energies_vmc = data[:, 2]
+    energies_exact = data[:, 3]
+    plt.figure()
+
+    for d in np.unique(dimensions):
+        mask = (dimensions == d)
+
+        N_d = n_particles[mask]
+        delta_E_d = energies_vmc[mask] - energies_exact[mask]
+
+        plt.scatter(N_d, delta_E_d, s=100, label=f"d={int(d)}")
+
+        plt.axhline(0, color="black", linewidth=1)
+        plt.xlabel("Number of particles")
+        plt.ylabel("Energy difference (VMC - Exact)")
+        plt.legend()
+        plt.show()
+
+plot_VMC_vs_exact()
