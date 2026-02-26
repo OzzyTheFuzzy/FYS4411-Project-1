@@ -54,9 +54,9 @@ def VMC_vs_exact():
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
     """
 
-    alpha_array = np.array([0.2, 0.5]) # array of alpha values to train on
-    dimensions = np.array([1, 2]) # dimensions
-    nparticles_array = np.array([1, 10]) # number of particles
+    alpha_array = np.linspace(0.1, 0.9, 11) # array of alpha values to train on
+    dimensions = np.array([1, 2, 3]) # dimensions
+    nparticles_array = np.array([1, 10, 100, 500]) # number of particles
     omega = 1.0 # frequency of the harmonic oscillator
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
@@ -80,12 +80,12 @@ def VMC_vs_exact():
     n_particles_flat = n_grid.flatten()
     energies_vmc_flat = energies_vmc.flatten()
     energies_exact_flat = energies_exact.flatten()
-    np.savetxt("../../data/vmc_results_test.2d.1.10.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
+    np.savetxt("../../data/vmc_results_test.1d.1.10.100.500.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
     header="dimension n_particles energy_vmc energy_exact"     )
     
     return 0
 
-VMC_vs_exact()
+
 
 
 def plot_VMC_vs_exact():
@@ -93,7 +93,7 @@ def plot_VMC_vs_exact():
     Plot the VMC vs Exact energies for all dimensions and number of particles
     
     """
-    data = np.loadtxt("../../data/vmc_results_test.2d.1.10.txt", skiprows=1) # load the data from the file, skip the header
+    data = np.loadtxt("../../data/vmc_results_test.1d.1.10.100.500.txt", skiprows=1) # load the data from the file, skip the header
     dimensions = data[:, 0]
     n_particles = data[:, 1]
     energies_vmc = data[:, 2]
@@ -114,4 +114,3 @@ def plot_VMC_vs_exact():
         plt.legend()
         plt.show()
 
-plot_VMC_vs_exact()
