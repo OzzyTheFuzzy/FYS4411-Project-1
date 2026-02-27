@@ -15,7 +15,7 @@ detailed = True
 wf_type = "vmc"
 seed = 42
 burn_in = training_cycles // 10 # number of burn-in samples to discard
-scale = 0.1 # scale for the MCMC proposal distribution (will be tuned with alpha during training)
+scale = 0.3 # scale for the MCMC proposal distribution (will be tuned with alpha during training)
 
 # Arrays for VMC_vs_exact.py
 alpha_array = np.linspace(0.1, 0.9, 11)
