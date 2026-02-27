@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 
 from physics.exact_energy import exact_energy
 from qs import quantum_state
-import config
+import config_VMC_vs_excact as config
 
-def find_energy_vmc(dim, nparticles, alpha_array):
+
+def find_energy_vmc(dim, nparticles, alpha_array, scale=0.1):
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
     system = quantum_state.QS(
         backend=config.backend,
@@ -26,8 +27,10 @@ def find_energy_vmc(dim, nparticles, alpha_array):
         dim,
     )
 
+    # calculate scale for a given alpha for good acceptance rate?
+    scale = scale * np.sqrt(1 / alpha_array[0]) # 
     # choose the sampler algorithm and scale
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=0.2)
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale)
 
     # choose the hamiltonian
     system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
@@ -37,11 +40,10 @@ def find_energy_vmc(dim, nparticles, alpha_array):
         optimizer=config.optimizer,
         eta=config.eta,
     )
-    system.train(
-    max_iter=config.training_cycles,
-    batch_size=config.batch_size,
-    alpha_array=alpha_array,
-)
+
+    # scale the training cycles with the number of particles
+    training_cycles = config.training_cycles * nparticles 
+    system.train(training_cycles, config.batch_size, alpha_array)
     # now we get the results or do whatever we want with them
     sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
     alpha = sample_results["alpha"]
@@ -54,10 +56,10 @@ def VMC_vs_exact():
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
     """
 
-    alpha_array = np.linspace(0.1, 0.9, 11) # array of alpha values to train on
-    dimensions = np.array([1, 2, 3]) # dimensions
-    nparticles_array = np.array([1, 10, 100, 500]) # number of particles
-    omega = 1.0 # frequency of the harmonic oscillator
+    alpha_array = config.alpha_array
+    dimensions = config.dimensions
+    nparticles_array = config.nparticles_array
+    omega = config.omega
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
     energies_exact = np.zeros((len(dimensions), len(nparticles_array))) # array to store the exact energies
@@ -66,7 +68,7 @@ def VMC_vs_exact():
     for d in range(len(dimensions)):
         for n in range(len(nparticles_array)):
             print(f"Calculating energy for d={dimensions[d]}, n={nparticles_array[n]}")
-            energy_analytical, energy_numerical, alpha = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
+            energy_analytical, energy_numerical, alpha = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array, scale=config.scale) 
             
             print(f'alpha = {alpha}') # print the alpha that gave the lowest energy
 
@@ -80,12 +82,12 @@ def VMC_vs_exact():
     n_particles_flat = n_grid.flatten()
     energies_vmc_flat = energies_vmc.flatten()
     energies_exact_flat = energies_exact.flatten()
-    np.savetxt("../../data/vmc_results_test.1d.1.10.100.500.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
+    np.savetxt("../../data/vmc_results_test2_scale_0.1.3d.500.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
     header="dimension n_particles energy_vmc energy_exact"     )
     
     return 0
 
-
+VMC_vs_exact()
 
 
 def plot_VMC_vs_exact():
@@ -93,7 +95,7 @@ def plot_VMC_vs_exact():
     Plot the VMC vs Exact energies for all dimensions and number of particles
     
     """
-    data = np.loadtxt("../../data/vmc_results_test.1d.1.10.100.500.txt", skiprows=1) # load the data from the file, skip the header
+    data = np.loadtxt("../../data/vmc_results_test.3d.500.txt", skiprows=1) # load the data from the file, skip the header
     dimensions = data[:, 0]
     n_particles = data[:, 1]
     energies_vmc = data[:, 2]

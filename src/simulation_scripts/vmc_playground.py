@@ -39,13 +39,14 @@ system.set_optimizer(
     optimizer=config.optimizer,
     eta=config.eta,
 )
-alpha_array = np.array([0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) # array of alpha values to train on
+alpha_array = np.linspace(0.1, 0.9, 11) # array of alpha values to train on
 
 # train the system, meaning we find the optimal variational parameters for the wave function
 system.train(
-    max_iter=config.training_cycles,
+    MC_training_cycles=config.training_cycles,
     batch_size=config.batch_size,
     alpha_array=alpha_array,
+    burn_in=config.burn_in,
 )
 
 

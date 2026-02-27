@@ -56,26 +56,31 @@ class HarmonicOscillator(Hamiltonian):
         self.omega_z = omega_z
 
 
-    def local_energy(self, wf, r):
+    def local_energy(self, wf, r, num=False):
         """Local energy of the system
-        Returns both numerical and analytical local energy for comparison
+        Returns either numerical or analytical local energy
         """
 
         V = self.potential_energy(r)
 
-        start = time.perf_counter()
-        K_num = self.kinetic_energy_numerical(wf, r)
-        end = time.perf_counter()
+        if num == True:
+            # branch for numerical and analytical energy
+            start = time.perf_counter()
+            K_num = self.kinetic_energy_numerical(wf, r)
+            end = time.perf_counter()
+            E_L_num = K_num + V
 
+            start = time.perf_counter()
+            K_ana = self.kinetic_energy_analytical(wf, r)
+            end = time.perf_counter()
 
-        start = time.perf_counter()
-        K_ana = self.kinetic_energy_analytical(wf, r)
-        end = time.perf_counter()
-
-        E_L_num = K_num + V
-        E_L_ana = K_ana + V
-
-        return E_L_num, E_L_ana
+            E_L_ana = K_ana + V
+            return E_L_num, E_L_ana
+        
+        else:
+            K_ana = self.kinetic_energy_analytical(wf, r)
+            E_L_ana = K_ana + V
+            return E_L_ana
     
     def potential_energy(self, r):
         if self._dim <= 2:

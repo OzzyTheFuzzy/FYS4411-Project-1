@@ -122,13 +122,13 @@ class QS:
         self._optimizer = opt.Gd(eta=eta)
 
 
-    def train(self, max_iter, batch_size, alpha_array):
+    def train(self, MC_training_cycles, batch_size, alpha_array, burn_in=0, num=False):
         """
         Train the wave function parameters.
         Here you should calculate sampler statistics and update the wave function parameters based on the derivative of the (statistical) local energy.
         """
         self._is_initialized()
-        self._training_cycles = max_iter
+        self._training_cycles = MC_training_cycles
         self._training_batch = batch_size
 
         steps_before_optimize = batch_size
@@ -138,7 +138,8 @@ class QS:
         self.mean_ana_energies = []
 
         for a in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
- 
+            print("N, D:", self.hamiltonian._N, self.hamiltonian._dim)
+            print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
             a_tensor = torch.tensor(a, dtype=torch.float64) # convert alpha to tensor for use in wave function
 
             self.wf.alpha = a_tensor # update the variational parameter in the wave function
@@ -150,17 +151,24 @@ class QS:
             ana_energy_list = []
 
             
-            for i in range(max_iter):
-
-
-                # for each alpha we calculate the energy with VMC
+            for i in range(MC_training_cycles): # for each alpha we perform MC_training_cycles steps of the sampler
+                                # for each alpha we calculate the energy with VMC
                 state = self.sampler.step(self.wf, state ,self._seed) # perform one step of the sampler
                 r_new = state.positions
 
-                num_energy, ana_energy = self.hamiltonian.local_energy(self.wf, r_new) #calculate num, ana energies for new positions
-                num_energy_list.append(num_energy.detach())
-                ana_energy_list.append(ana_energy.detach())
+                if i>=burn_in:
+                    
+                    if num==True:
+                        num_energy, ana_energy = self.hamiltonian.local_energy(self.wf, r_new, num) #calculate num, ana energies for new positions
+                    else:
+                        ana_energy = self.hamiltonian.local_energy(self.wf, r_new) #calculate num, ana energies for new positions
+                        num_energy = ana_energy # if not calculating numerical energy, set it to analytical energy
 
+                    num_energy_list.append(num_energy.detach())
+                    ana_energy_list.append(ana_energy.detach())
+
+
+    
             # calculate the mean energy for the current alpha
             mean_num_energy = np.mean(num_energy_list)
             mean_ana_energy = np.mean(ana_energy_list)
@@ -174,7 +182,6 @@ class QS:
             steps_before_optimize -= 1
             if steps_before_optimize == 0:
                 epoch += 1
-
         
             
                 # Make Descent step with optimizer
@@ -183,7 +190,8 @@ class QS:
                 steps_before_optimize = batch_size
                 """
         
-      
+            accept_rate = state.n_accepted / MC_training_cycles
+            print(f"alpha={a:.3f} accept_rate={accept_rate:.3f} mean_E_ana={mean_ana_energy:.6f}")
         # Picking out the alpha that gave the lowest energy
         best_idx = np.argmin(self.mean_ana_energies)
         a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64) # convert alpha to tensor for use in wave function
@@ -203,7 +211,7 @@ class QS:
         self._is_initialized() # check if the system is initialized
         self._is_trained() # check if the system is trained
 
-        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed) # call the sample method from the sampler class and store the results in self._results
+        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed, burn_in=self.burn_in) # call the sample method from the sampler class, which will perform the sampling and return the results
         return self._results
     
 

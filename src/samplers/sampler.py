@@ -37,7 +37,7 @@ class Sampler:
 
         return self.results
 
-    def _sample(self, wf, nsamples, state, scale, seed, chain_id):
+    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False):
         """To be called by process. Here the actual sampling is performed."""
 
         if self._logger is not None:
@@ -53,16 +53,22 @@ class Sampler:
 
         # Config
         state = State(state.positions, state.logp, 0, state.delta)
-        analytical_energies = np.zeros(nsamples)
-        numerical_energies = np.zeros(nsamples)
+        analytical_energies = np.zeros(nsamples-burn_in)
+        numerical_energies = np.zeros(nsamples-burn_in) 
 
         for i in t_range:
-  
             metropolis_state = self.step(wf, state, seed) #
             r_new = metropolis_state.positions
-            num_energy, ana_energy = self.hamiltonian.local_energy(wf, r_new) #calculate num, ana energies
-            numerical_energies[i] = num_energy.detach()
-            analytical_energies[i] = ana_energy.detach()
+
+            if burn_in is not None and i >= burn_in:
+        
+                if num == True:
+                    num_energy, ana_energy = self.hamiltonian.local_energy(wf, r_new, num) #calculate num, ana energies
+                    numerical_energies[i-burn_in] = num_energy.detach()
+                else:
+                    ana_energy= self.hamiltonian.local_energy(wf, r_new) #calculate num, ana energies
+
+                analytical_energies[i-burn_in] = ana_energy.detach()
             state = metropolis_state # update the state for next iteration
 
 
