@@ -87,7 +87,7 @@ def VMC_vs_exact():
             alphas_best[d, n] = alpha
             std_errors[d, n] = std_error
             variances[d, n] = variance
-            scales[d, n] = scale
+            scales[d, n] = float(scale)
             print(f'alpha = {alpha}') # print the alpha that gave the lowest energy
 
             energies_vmc[d, n] = energy_analytical #store the vmc energy
@@ -122,7 +122,7 @@ def VMC_vs_exact():
     ))
 
     np.savetxt(
-        "../../data/vmc_results_full.txt",
+        "../../data/vmc_results_test1.txt",
         out,
         header="dimension n_particles E_vmc std_error variance alpha scale E_exact E_diff",
         fmt="%d %d %.12f %.12e %.12e %.12f %.12f %.12f %.12e",
@@ -140,7 +140,7 @@ def plot_VMC_vs_exact():
     Plot the VMC vs Exact energies for all dimensions and number of particles
     
     """
-    data = np.loadtxt("../../data/vmc_results_test2_scale_0.1.3d.500.txt", skiprows=1) # load the data from the file, skip the header
+    data = np.loadtxt("../../data/vmc_results_test1.txt", skiprows=1) # load the data from the file, skip the header
     dimensions = data[:, 0]
     n_particles = data[:, 1]
     energies_vmc = data[:, 2]
