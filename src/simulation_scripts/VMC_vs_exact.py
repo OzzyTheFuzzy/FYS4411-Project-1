@@ -1,5 +1,6 @@
 # VMC_vs_exact.py
 import sys
+import time
 from os import system
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 
@@ -11,7 +12,7 @@ from qs import quantum_state
 import config_VMC_vs_excact as config
 
 
-def find_energy_vmc(dim, nparticles, alpha_array, scale=0.1):
+def find_energy_vmc(dim, nparticles, alpha_array):
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
     system = quantum_state.QS(
         backend=config.backend,
@@ -27,10 +28,8 @@ def find_energy_vmc(dim, nparticles, alpha_array, scale=0.1):
         dim,
     )
 
-    # calculate scale for a given alpha for good acceptance rate?
-    scale = scale * np.sqrt(1 / alpha_array[0]) # 
     # choose the sampler algorithm and scale
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale)
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
 
     # choose the hamiltonian
     system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
@@ -41,16 +40,18 @@ def find_energy_vmc(dim, nparticles, alpha_array, scale=0.1):
         eta=config.eta,
     )
 
-    # scale the training cycles with the number of particles
+    # scale the training cycles with the number of particles for better convergence
     training_cycles = config.training_cycles * nparticles 
-    system.train(training_cycles, config.batch_size, alpha_array)
-    # now we get the results or do whatever we want with them
-    sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
-    alpha = sample_results["alpha"]
-    energy_numerical = sample_results["energy_numerical"]
-    energy_analytical = sample_results["energy_analytical"]
     
-    return energy_analytical, energy_numerical, alpha
+    # train the system and find the best alpha (scale adapts per alpha internally)
+    system.train(training_cycles, config.batch_size, alpha_array)
+
+    # retrieve results for the best alpha with burn-in
+    system.burn_in = config.burn_in
+    sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
+
+    
+    return sample_results
 
 def VMC_vs_exact():
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
@@ -63,39 +64,83 @@ def VMC_vs_exact():
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
     energies_exact = np.zeros((len(dimensions), len(nparticles_array))) # array to store the exact energies
-
+    alphas_best = np.zeros_like(energies_vmc)
+    std_errors  = np.zeros_like(energies_vmc)
+    variances   = np.zeros_like(energies_vmc)
+    scales      = np.zeros_like(energies_vmc)
     # Loop over dimensions and number of particles, calculate the energies and store them in the arrays
+    
     for d in range(len(dimensions)):
         for n in range(len(nparticles_array)):
-            print(f"Calculating energy for d={dimensions[d]}, n={nparticles_array[n]}")
-            energy_analytical, energy_numerical, alpha = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array, scale=config.scale) 
+
+            print(f"Calculating energy and std for d={dimensions[d]}, n={nparticles_array[n]}")
+            sample_results = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
+
+            # extract the relevant results from the sample_results dictionary
+            alpha = sample_results["alpha"]
+            energy_analytical = sample_results["energy_analytical"]
+            std_error = sample_results["std_error"]
+            variance = sample_results["variance"]
+            scale = sample_results["scale"]
             
+            # store the best alpha, std error, variance, and scale for the current dimension and number of particles   
+            alphas_best[d, n] = alpha
+            std_errors[d, n] = std_error
+            variances[d, n] = variance
+            scales[d, n] = scale
             print(f'alpha = {alpha}') # print the alpha that gave the lowest energy
 
             energies_vmc[d, n] = energy_analytical #store the vmc energy
             energies_exact[d, n] = exact_energy(nparticles_array[n], omega, dimensions[d]) #store the exact energy
+
     # Create matching grids
     dim_grid, n_grid = np.meshgrid(dimensions, nparticles_array, indexing="ij")
 
     # Flatten everything
-    dimensions_flat = dim_grid.flatten()
-    n_particles_flat = n_grid.flatten()
-    energies_vmc_flat = energies_vmc.flatten()
-    energies_exact_flat = energies_exact.flatten()
-    np.savetxt("../../data/vmc_results_test2_scale_0.1.3d.500.txt", np.column_stack((dimensions_flat, n_particles_flat, energies_vmc_flat, energies_exact_flat)),
-    header="dimension n_particles energy_vmc energy_exact"     )
-    
+    dimensions_flat      = dim_grid.flatten()
+    n_particles_flat     = n_grid.flatten()
+
+    energies_vmc_flat    = energies_vmc.flatten()
+    std_errors_flat      = std_errors.flatten()
+    variances_flat       = variances.flatten()
+    alphas_best_flat     = alphas_best.flatten()
+    scales_flat          = scales.flatten()
+
+    energies_exact_flat  = energies_exact.flatten()
+    diff_flat            = (energies_vmc - energies_exact).flatten()
+
+    out = np.column_stack((
+        dimensions_flat,
+        n_particles_flat,
+        energies_vmc_flat,
+        std_errors_flat,
+        variances_flat,
+        alphas_best_flat,
+        scales_flat,
+        energies_exact_flat,
+        diff_flat,
+    ))
+
+    np.savetxt(
+        "../../data/vmc_results_full.txt",
+        out,
+        header="dimension n_particles E_vmc std_error variance alpha scale E_exact E_diff",
+        fmt="%d %d %.12f %.12e %.12e %.12f %.12f %.12f %.12e",
+    )
     return 0
 
-VMC_vs_exact()
 
+start = time.perf_counter()
+VMC_vs_exact()
+end = time.perf_counter()
+print(f"Total time taken: {end - start:.2f} seconds")
 
 def plot_VMC_vs_exact():
     """
     Plot the VMC vs Exact energies for all dimensions and number of particles
     
     """
-    data = np.loadtxt("../../data/vmc_results_test.3d.500.txt", skiprows=1) # load the data from the file, skip the header
+    data = np.loadtxt("../../data/vmc_results_test2_scale_0.1.3d.500.txt", skiprows=1) # load the data from the file, skip the header
     dimensions = data[:, 0]
     n_particles = data[:, 1]
     energies_vmc = data[:, 2]
@@ -107,7 +152,7 @@ def plot_VMC_vs_exact():
 
         N_d = n_particles[mask]
         delta_E_d = energies_vmc[mask] - energies_exact[mask]
-
+        print(np.abs(delta_E_d/energies_exact[mask])) # print the relative error for each point
         plt.scatter(N_d, delta_E_d, s=100, label=f"d={int(d)}")
 
         plt.axhline(0, color="black", linewidth=1)
@@ -116,3 +161,4 @@ def plot_VMC_vs_exact():
         plt.legend()
         plt.show()
 
+plot_VMC_vs_exact()
