@@ -1,7 +1,7 @@
 # Configuration for VMC_vs_exact.py
 import numpy as np
 
-output_filename = "../data/vmc_playground.csv"
+output_filename = "../../data/vmc_vs_exact_test.txt"
 
 nsamples = int(2**15)   # samples for the final calculation of the energy after training
 nchains = 1
@@ -19,6 +19,6 @@ scale = 0.4 # scale for the MCMC proposal distribution (will be tuned with alpha
 
 # Arrays for VMC_vs_exact.py
 alpha_array = np.linspace(0.1, 0.9, 11)
-dimensions = np.array([1])
+dimensions = np.array([1, 2])
 nparticles_array = np.array([1])
 omega = 1.0
