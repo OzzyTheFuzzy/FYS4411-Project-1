@@ -56,7 +56,8 @@ class QS:
         self.wf = None
         self._seed = seed
         self.logger = setup_logger(self.__class__.__name__, level=logger_level) if self._log else None
-        self.sampler=None
+        self.sampler = None
+        self.burn_in = None
 
         if rng is None:
             self.rng = default_rng(self._seed)
@@ -143,7 +144,10 @@ class QS:
             a_tensor = torch.tensor(a, dtype=torch.float64) # convert alpha to tensor for use in wave function
 
             self.wf.alpha = a_tensor # update the variational parameter in the wave function
-            self.wf.wf.alpha = a_tensor # update WaveFunction.alpha 
+            self.wf.wf.alpha = a_tensor # update WaveFunction.alpha
+            
+            # Update sampler scale based on current alpha for adaptive proposal steps
+            self.sampler.scale = self._scale * np.sqrt(1.0 / a)
   
             
             state = self._make_initial_state()  # reinitialize for each alpha!
@@ -166,8 +170,6 @@ class QS:
 
                     num_energy_list.append(num_energy.detach())
                     ana_energy_list.append(ana_energy.detach())
-
-
     
             # calculate the mean energy for the current alpha
             mean_num_energy = np.mean(num_energy_list)
@@ -211,7 +213,11 @@ class QS:
         self._is_initialized() # check if the system is initialized
         self._is_trained() # check if the system is trained
 
-        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed, burn_in=self.burn_in) # call the sample method from the sampler class, which will perform the sampling and return the results
+        # Pass burn_in to sampler if set
+        if hasattr(self, 'burn_in'):
+            self.sampler.burn_in = self.burn_in
+        
+        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed) # call the sample method from the sampler class, which will perform the sampling and return the results
         return self._results
     
 

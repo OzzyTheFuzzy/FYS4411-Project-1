@@ -58,6 +58,21 @@ class WaveFunction:
         else:
             return -2 * a * (bk.sum(r_single_wf[:-1]**2) + b * r_single_wf[-1]**2) #returns logprob for a single particle with 3 dimensions
         
+    def quantum_force_single(self, r_single_wf, alpha=None, beta=None):
+        """Calculate the quantum force for a single particle"""
+
+        a = self.alpha if alpha is None else alpha
+        b = self.beta if beta is None else beta
+        bk = self.backend
+
+        #calculate quantum force
+        q_force = -4 * a * r_single_wf
+        
+        if b is not None:
+            q_force = q_force.clone()
+            q_force[..., -1] *= b
+            
+        return q_force
     
 class VMC:
     def __init__(
