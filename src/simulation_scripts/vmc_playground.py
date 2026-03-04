@@ -29,7 +29,7 @@ system.set_wf(
 )
 
 # choose the sampler algorithm and scale
-system.set_sampler(mcmc_alg=config.mcmc_alg, scale=0.2)
+system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
 
 # choose the hamiltonian
 system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
@@ -39,7 +39,7 @@ system.set_optimizer(
     optimizer=config.optimizer,
     eta=config.eta,
 )
-alpha_array = np.linspace(0.1, 0.9, 11) # array of alpha values to train on
+alpha_array = config.alpha_array
 
 # train the system, meaning we find the optimal variational parameters for the wave function
 system.train(
@@ -54,11 +54,11 @@ system.train(
 results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
 
 # display the results
-alphas = alpha_array
+
 energies = np.array(system.mean_ana_energies)  # or mean_num_energies
 
 plt.figure()
-plt.plot(alphas, energies, marker="o")
+plt.plot(alpha_array, energies, marker="o")
 plt.xlabel("Alpha")
 plt.ylabel("Energy")
 plt.title("Energy vs Alpha")
@@ -66,5 +66,5 @@ plt.grid(True)
 
 # Mark best alpha
 best_idx = np.argmin(energies)
-plt.scatter(alphas[best_idx], energies[best_idx])
+plt.scatter(alpha_array[best_idx], energies[best_idx])
 plt.show()
