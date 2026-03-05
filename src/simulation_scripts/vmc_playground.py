@@ -44,7 +44,6 @@ alpha_array = config.alpha_array
 # train the system, meaning we find the optimal variational parameters for the wave function
 system.train(
     MC_training_cycles=config.training_cycles,
-    batch_size=config.batch_size,
     alpha_array=alpha_array,
     burn_in=config.burn_in,
 )
