@@ -51,7 +51,7 @@ system.train(
 
 # now we get the results or do whatever we want with them
 results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
-
+print(results)
 # display the results
 
 energies = np.array(system.mean_ana_energies)  # or mean_num_energies

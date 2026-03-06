@@ -5,8 +5,8 @@ output_filename = "../../data/vmc_vs_exact_test.txt"
 
 nsamples = int(2**15)   # samples for the final calculation of the energy after training
 nchains = 1
-eta = 0.01
-training_cycles = 20_000 # number of training cycles for each alpha (Will be scaled with the number of particles in VMC_vs_exact.py)
+eta = 0.0 #keep this 0 because 
+training_cycles = 20_000 # number of training cycles for each alpha 
 mcmc_alg = "m"
 backend = "torch"
 optimizer = "gd"
@@ -14,7 +14,7 @@ batch_size = 200
 detailed = True
 wf_type = "vmc"
 seed = 42
-burn_in = 2 * training_cycles // 10 # number of burn-in samples to discard
+burn_in = 2 * training_cycles // 10 # number of burn-in samples to discard 10-20% is usually good
 scale = 0.4 # scale for the MCMC proposal distribution (will be tuned with alpha during training)
 
 # Arrays for VMC_vs_exact.py
