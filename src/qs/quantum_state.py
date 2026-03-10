@@ -206,7 +206,7 @@ class QS:
 
         alpha = torch.tensor(alpha_0, dtype=torch.float64)
 
-        tol = 1e-3
+        tol = 1e-4
         patience = 5
         no_improve_count = 0
         best_energy = float("inf")
