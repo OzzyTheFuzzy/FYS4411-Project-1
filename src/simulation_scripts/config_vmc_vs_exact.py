@@ -5,9 +5,9 @@ output_filename = "../../data/vmc_vs_exact_test.txt"
 
 nsamples = int(2**15)   # samples for the final calculation of the energy after training
 nchains = 1
-eta = 0.0 #keep this 0 because 
+eta = 0.0               #keep this 0 because we do not use optimizer
 training_cycles = 20_000 # number of training cycles for each alpha 
-mcmc_alg = "m"
+mcmc_alg = "metropolis" # metropolis or langevin 
 backend = "torch"
 optimizer = "gd"
 batch_size = 200
