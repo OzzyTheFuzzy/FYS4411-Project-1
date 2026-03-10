@@ -26,6 +26,7 @@ from physics.hamiltonians import HarmonicOscillator as HO
 
 from samplers.metropolis import Metropolis as Metro
 
+from samplers.langevin_metropolis import LangevinMetropolis as Langevin
 import optimizers as opt
 
 warnings.filterwarnings("ignore", message="divide by zero encountered")
@@ -106,101 +107,156 @@ class QS:
         self._scale = scale
 
         # Create sampler instance (only Metropolis supported for now)
-        self.sampler = Metro(rng=self.rng, scale=scale, logger=self.logger)
+        if mcmc_alg == "metropolis":
+            self.sampler = Metro(rng=self.rng, scale=scale, logger=self.logger)
+        elif mcmc_alg == "langevin":
+            self.sampler = Langevin(rng=self.rng, scale=scale, logger=self.logger)
+            
 
         # If Hamiltonian already set, propagate it
         if self.hamiltonian is not None:
             self.sampler.set_hamiltonian(self.hamiltonian)
 
-
-    def set_optimizer(self, optimizer, eta, **kwargs):
+        
+    def set_optimizer(self, optimizer, eta):
         """
         Set the optimizer algorithm to be used for param update.
         """
         self._eta = eta
         
         # check Gd script
-        self._optimizer = opt.Gd(eta=eta)
+        if optimizer == "gd":
+            self._optimizer = opt.Gd(eta=eta)
+            
+        elif optimizer == "adam":
+            self._optimizer = opt.Gd(eta=eta, optimizer_name="adam")
 
 
-    def train(self, MC_training_cycles, batch_size, alpha_array, burn_in=0, num=False):
+    def train(self, MC_training_cycles, alpha_array, burn_in=0, num=False):
         """
-        Train the wave function parameters.
-        Here you should calculate sampler statistics and update the wave function parameters based on the derivative of the (statistical) local energy.
+        Train the wave function parameters using grid search over alpha_array.
         """
+
         self._is_initialized()
         self._training_cycles = MC_training_cycles
-        self._training_batch = batch_size
 
-        steps_before_optimize = batch_size
-        
-        self.alpha_array = alpha_array  # store for plotting
+        self.alpha_array = alpha_array
         self.mean_num_energies = []
         self.mean_ana_energies = []
 
         for a in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
+
             print("N, D:", self.hamiltonian._N, self.hamiltonian._dim)
             print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
-            a_tensor = torch.tensor(a, dtype=torch.float64) # convert alpha to tensor for use in wave function
 
-            self.wf.alpha = a_tensor # update the variational parameter in the wave function
-            self.wf.wf.alpha = a_tensor # update WaveFunction.alpha
-            
-            # Update sampler scale based on current alpha for adaptive proposal steps
-            self.sampler.scale = self._scale * np.sqrt(1.0 / a)
-  
-            
-            state = self._make_initial_state()  # reinitialize for each alpha!
-            num_energy_list = []
-            ana_energy_list = []
+            a_tensor = torch.tensor(a, dtype=torch.float64)
 
-            
-            for i in range(MC_training_cycles): # for each alpha we perform MC_training_cycles steps of the sampler
-                                # for each alpha we calculate the energy with VMC
-                state = self.sampler.step(self.wf, state ,self._seed) # perform one step of the sampler
-                r_new = state.positions
+            # update wavefunction alpha
+            self.wf.alpha = a_tensor
+            self.wf.wf.alpha = a_tensor
 
-                if i>=burn_in:
-                    
-                    if num==True:
-                        num_energy, ana_energy = self.hamiltonian.local_energy(self.wf, r_new, num) #calculate num, ana energies for new positions
-                    else:
-                        ana_energy = self.hamiltonian.local_energy(self.wf, r_new) #calculate num, ana energies for new positions
-                        num_energy = ana_energy # if not calculating numerical energy, set it to analytical energy
+            # update sampler scale
+            if self.mcmc_alg == "metropolis" or self.mcmc_alg == "langevin":
+                self.sampler.scale = self._scale * np.sqrt(1.0 / a)
 
-                    num_energy_list.append(num_energy.detach())
-                    ana_energy_list.append(ana_energy.detach())
-    
-            # calculate the mean energy for the current alpha
-            mean_num_energy = np.mean(num_energy_list)
-            mean_ana_energy = np.mean(ana_energy_list)
+            state= self._make_initial_state() # make initial state for sampling
+            # call sample function from sampler class
+            E_ana, E_num, _, accept_rate = self.sampler._sample_energy_and_optional_O(
+                self.wf, state,
+                MC_training_cycles, seed=self._seed,
+                burn_in=burn_in,
+                need_O=False,
+                num=num,
+            )
 
-            # store the mean energies for the current alpha globally
+            # compute mean energies (same as before)
+            mean_ana_energy = E_ana.mean().item()
+            mean_num_energy = E_num.mean().item() if num else mean_ana_energy
+
+            # store results
             self.mean_num_energies.append(mean_num_energy)
             self.mean_ana_energies.append(mean_ana_energy)
-            
 
-            """ add later
-            steps_before_optimize -= 1
-            if steps_before_optimize == 0:
-                epoch += 1
-        
-            
-                # Make Descent step with optimizer
+            print(
+                f"alpha={a:.3f} accept_rate={accept_rate:.3f} "
+                f"mean_E_ana={mean_ana_energy:.6f}, scale={self.sampler.scale:.4f}")
 
-            
-                steps_before_optimize = batch_size
-                """
+        # pick best alpha
+        best_idx = np.argmin(self.mean_ana_energies)
+        a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64)
+
+        self.wf.alpha = a_tensor
+        self.wf.wf.alpha = a_tensor
+
+        self._is_trained_ = True
+        if self.logger is not None:
+            self.logger.info("Training done")
+
+
+    def train_steepest_descent(self, MC_training_cycles, num_iterations, burn_in=0, alpha_0=1.0):
+        """
+        Train using steepest descent for alpha.
+        """
+        self._is_initialized()
+        self._training_cycles = MC_training_cycles
         
-            accept_rate = state.n_accepted / MC_training_cycles
-            print(f"alpha={a:.3f} accept_rate={accept_rate:.3f} mean_E_ana={mean_ana_energy:.6f}")
-        # Picking out the alpha that gave the lowest energy
+        self.mean_num_energies = []
+        self.mean_ana_energies = []
+        self.alpha_array = []
+
+        alpha = torch.tensor(alpha_0, dtype=torch.float64)
+
+        tol = 1e-3
+        patience = 5
+        no_improve_count = 0
+        best_energy = float("inf")
+        for alpha_j in range(num_iterations):
+
+            self.wf.alpha = alpha
+            self.wf.wf.alpha = alpha
+            
+            a_val = alpha.detach().item()
+        
+            state = self._make_initial_state()
+
+            E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
+                self.wf, state,
+                MC_training_cycles, seed=self._seed,
+                burn_in=burn_in,
+                need_O=True,
+                )
+            
+            # Compute the gradient dE/d alpha and the mean analytical energy
+            dE_dalpha, mean_ana_energy, = self.hamiltonian.compute_gradient(O, E_ana)
+            
+            # Update alpha using the optimizer either with gradient descent or Adam 
+            alpha = self._optimizer.step(alpha, dE_dalpha, self._optimizer)
+
+            # Store global stats for plotting
+            self.alpha_array.append(a_val)
+            self.mean_ana_energies.append(mean_ana_energy.item())
+
+            print(f"iteration={alpha_j} accept_rate={accept_rate:.4f} mean_E_ana={mean_ana_energy.item():.6f}, alpha={a_val:.7f}")
+
+            current_energy = mean_ana_energy.item()
+
+            if best_energy - current_energy > tol:
+                best_energy = current_energy
+                no_improve_count = 0
+            else:
+                no_improve_count += 1
+
+            if no_improve_count >= patience:
+                print(f"Stopping early at iteration {alpha_j} (energy plateau)")
+                break
+            
+        # finding the best alpha after training and updating the wave function with it
         best_idx = np.argmin(self.mean_ana_energies)
         a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64) # convert alpha to tensor for use in wave function
 
-        self.wf.alpha = a_tensor # update to the best variational parameter in the wave function 
+        self.wf.alpha = a_tensor    # update to the best variational parameter in the wave function 
         self.wf.wf.alpha = a_tensor # update WaveFunction.alpha to the best variational parameter
-  
+    
         self._is_trained_ = True
         if self.logger is not None:
             self.logger.info("Training done")

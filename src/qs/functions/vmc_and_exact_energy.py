@@ -14,7 +14,7 @@ from simulation_scripts import config_vmc_vs_exact as config
 
 
 
-def find_energy_vmc(dim, nparticles, alpha_array):
+def find_energy_vmc(dim, nparticles, alpha_array, config=config):
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
     system = quantum_state.QS(
         backend=config.backend,
@@ -36,24 +36,32 @@ def find_energy_vmc(dim, nparticles, alpha_array):
     # choose the hamiltonian
     system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
 
+    # scale learningrate with # of particles
+    eta=config.eta/(np.sqrt(nparticles))
+
     # choose the optimizer, learning rate, and other properties depending on the optimizer
     system.set_optimizer(
         optimizer=config.optimizer,
-        eta=config.eta,
+        eta=eta,
     )
 
     # scale the training cycles with the number of particles for better convergence
-    training_cycles = config.training_cycles * nparticles 
+    training_cycles = config.training_cycles  
     
     # train the system and find the best alpha (scale adapts per alpha internally)
-    system.train(training_cycles, config.batch_size, alpha_array, burn_in=config.burn_in)
+    
+    if config.eta!=0:
+        alpha_0 = alpha_array[0]
+        system.train_steepest_descent(training_cycles, config.num_iterations, burn_in=config.burn_in, alpha_0= alpha_0)
+    else:
+        system.train(training_cycles, alpha_array, burn_in=config.burn_in)
 
     # retrieve results for the best alpha with burn-in
     system.burn_in = config.burn_in
     sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
 
     
-    return sample_results
+    return sample_results, system
 
 def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
@@ -76,7 +84,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
         for n in range(len(nparticles_array)):
 
             print(f"Calculating energy and std for d={dimensions[d]}, n={nparticles_array[n]}")
-            sample_results = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
+            sample_results, system = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
 
             # extract the relevant results from the sample_results dictionary
             alpha = sample_results["alpha"]

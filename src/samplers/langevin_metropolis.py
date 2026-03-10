@@ -11,7 +11,8 @@ class LangevinMetropolis(Sampler):
         self.rng = rng
         
     def _step(self, wf, state, seed):
-        """One step of the random walk Metropolis hastings algorithm with Langevin drift
+        """
+        One step of the random walk Metropolis hastings algorithm with Langevin drift
 
         Arguments:
         wf: the wave function
@@ -54,7 +55,7 @@ class LangevinMetropolis(Sampler):
 
         # pick out random number and accept/reject the move and update the state accordingly
         u = self.rng.uniform()
-        accept = np.log(u) < min(0.0, float(log_alpha))
+        accept = np.log(u) < min(0.0, log_alpha.detach().item())
 
         if accept:
             new_positions = r_all.clone()

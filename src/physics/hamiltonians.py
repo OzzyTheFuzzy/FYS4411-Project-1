@@ -41,7 +41,6 @@ class Hamiltonian:
 
 
 
-
 class HarmonicOscillator(Hamiltonian):
     def __init__(
         self,
@@ -137,3 +136,27 @@ class HarmonicOscillator(Hamiltonian):
         grad_sq = torch.dot(grad, grad)
 
         return lap, grad_sq  # (tr(H) + grad^2) is the kinetic energy in log space
+    
+    def O_alpha_analytic(self, wf, r):
+        # r: shape (N, dim)
+
+        if wf.beta is None:
+            return -torch.sum(r**2)
+        else:
+            beta = wf.beta
+            r_perp2 = torch.sum(r[:, :-1]**2)
+            z2 = torch.sum(r[:, -1]**2)
+            return -(r_perp2 + beta * z2)   # or beta**2 depending on your wf definitio
+        
+    def compute_gradient(self, O, E_L):
+        # r: shape (N, dim) 
+    
+        E_mean = E_L.mean()
+        O_mean = O.mean()
+
+        OE_mean = (E_L * O).mean()
+
+        dE_dalpha = 2 * (OE_mean - E_mean * O_mean)
+
+        return dE_dalpha, E_mean
+ 

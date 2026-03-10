@@ -9,7 +9,7 @@ class Optimizer(object):
             lr (float): Learning rate.
         """
         self.eta = eta
-
+        
     def step(self):
         """Update the parameters."""
         raise NotImplementedError

@@ -37,7 +37,7 @@ class Metropolis(Sampler):
 
         # draw random number and accept/reject the move and update the state accordingly
         u = self.rng.uniform()
-        accept = np.log(u) < min(0.0, float(log_alpha))
+        accept = np.log(u) < min(0.0, log_alpha.detach().item()) # detach gradients for alpha updates and convert to scalar for comparison
 
         if accept:
             new_positions = r_prop

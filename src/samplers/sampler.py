@@ -40,6 +40,48 @@ class Sampler:
 
         return self.results
 
+
+    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles,seed, burn_in=0, need_O = False, num= False):
+        """
+        Run an MCMC batch at fixed alpha and return:
+        - E_ana: tensor of analytic local energies (shape [n_samples])
+        - E_num: tensor of numeric local energies (shape [n_samples]) or None if num=False
+        - O:     tensor of O_alpha values (shape [n_samples]) or None if need_O=False
+        - accept_rate: float
+        """
+
+        E_ana_list = []
+        E_num_list = [] if num else None
+        O_list = [] if need_O else None
+
+        for i in range(MC_training_cycles):
+            state = self.step(wf, state, seed)
+            
+            if i < burn_in:
+                continue
+
+            r = state.positions
+
+            if num:
+                E_num, E_ana = self.hamiltonian.local_energy(wf, r, num=True)
+                E_num_list.append(E_num.detach())
+                E_ana_list.append(E_ana.detach())
+            else:
+                E_ana = self.hamiltonian.local_energy(wf, r, num=False)
+                E_ana_list.append(E_ana.detach())
+
+            if need_O:
+                O_val = self.hamiltonian.O_alpha_analytic(wf, r)
+                O_list.append(O_val.detach())
+
+        E_ana = torch.stack(E_ana_list)
+        E_num = torch.stack(E_num_list) if num else None
+        O = torch.stack(O_list) if need_O else None
+
+        accept_rate = state.n_accepted / MC_training_cycles
+        
+        return E_ana, E_num, O, accept_rate
+
     def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False):
         """To be called by process. Here the actual sampling is performed."""
 
@@ -63,6 +105,7 @@ class Sampler:
 
         
         for i in t_range:
+            
             metropolis_state = self.step(wf, state, seed) #
             r_new = metropolis_state.positions
 
@@ -73,6 +116,7 @@ class Sampler:
                     numerical_energies[i-burn_in] = num_energy.detach()
                 else:
                     ana_energy= self.hamiltonian.local_energy(wf, r_new) #calculate num, ana energies
+                    numerical_energies[i-burn_in] = 0
 
                 analytical_energies[i-burn_in] = ana_energy.detach()
             state = metropolis_state # update the state for next iteration
@@ -81,7 +125,8 @@ class Sampler:
         if self._logger is not None:
             t_range.clear()
 
-
+        print(analytical_energies.dtype)
+        
         sample_results = {
             "chain_id": chain_id,
             "energy_numerical":  torch.mean(numerical_energies).item(),  # calculate mean numerical energy 
@@ -90,10 +135,11 @@ class Sampler:
                         / torch.sqrt(torch.tensor(n_effective, dtype=analytical_energies.dtype))).item(),
             "variance": analytical_energies.var(unbiased=False).item(),
             "scale": self.scale, 
-            "nsamples": nsamples,
+            "effective samples": n_effective,
+            "MC cycles": nsamples,
             "alpha": wf.alpha.item(), # get the alpha value from the wave function
         }
-        print(sample_results) # print the results for the current chain
+    
         return sample_results
 
     def set_hamiltonian(self, hamiltonian):
