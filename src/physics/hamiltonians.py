@@ -132,10 +132,10 @@ class HarmonicOscillator(Hamiltonian):
         grad = torch.autograd.grad(logpsi, r_flat, create_graph=True)[0]
         hessian = torch.autograd.functional.hessian(logpsi_flat, r_flat)
 
-        lap = torch.trace(hessian)
-        grad_sq = torch.dot(grad, grad)
+        lap = torch.trace(hessian) #laplaccien is the trace of the hessian
+        grad_sq = torch.dot(grad, grad) # grad^2 is the dot product of the gradient with itself
 
-        return lap, grad_sq  # (tr(H) + grad^2) is the kinetic energy in log space
+        return lap, grad_sq  # (tr(H) + grad^2) is the kinetic energy in log space. 
     
     def O_alpha_analytic(self, wf, r):
         # r: shape (N, dim)

@@ -14,15 +14,22 @@ class WaveFunction:
     by the template. It stores references to `alpha`/`beta` so updates to the
     arrays are visible to the instance.
     """
-    def __init__(self, backend, alpha, beta=None):
+    def __init__(self, backend, alpha, beta=None, a=0.0):
         self.backend = backend
         self.alpha = alpha
         self.beta = beta
-
+        self.a = a
+        
     def __call__(self, r, alpha=None, beta=None):
         a = self.alpha if alpha is None else alpha #if alpha is not provided, use self.alpha
         b = self.beta if beta is None else beta #if beta is not provided, use self.beta
-        return self.gaussian_log_psi(r, a, b)
+
+        #if jastrow factor is not zero, calculate it and add it to the gaussian log psi
+        if a != 0:
+            j = self.jastrow(r) # calculate jastrow factor
+        else:
+            j = 0
+        return self.gaussian_log_psi(r, a, b) + j
 
     def gaussian_log_psi(self, r, alpha=None, beta=None):
         """Instance Gaussian log-psi using this WaveFunction's backend.
@@ -38,6 +45,35 @@ class WaveFunction:
             return -a * bk.sum(r**2)
         else:
             return -a * (bk.sum(r[:, :-1]**2) + b * bk.sum(r[:, -1]**2))
+        
+    def jastrow(self, r):
+        """
+        calculates the jastrow factor for a given configuration of particles r
+        r: shape (N, dim)
+        
+        """
+        a = self.a             # hard-core radius characterizing the interaction strength
+        N = r.shape[0] #
+        bk = self.backend
+
+        if a is None or N == 1: #no interactions if a is zero or only one particle
+            return 0.0
+
+        diff = r[:, None, :] - r[None, :, :]         # make a  (N, N, dim) array with differences
+        r_ij = bk.linalg.norm(diff, axis=-1)         # (N, N) distance matrix with r_ij[i, j] = |r_i - r_j| 
+
+        # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
+        iu = bk.triu_indices(N, N, offset=1) #for torch
+        rij = r_ij[iu] 
+
+        # hard-core condition 
+        if bk.any(rij <= a):
+            return -bk.inf
+        
+        # return the total jastrow factor in log space
+
+        return bk.sum(bk.log(1.0 - a / rij))
+ 
 
     def log_prob(self, r):
         # function for calculating log|psi|^2 from log|psi|
