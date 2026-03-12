@@ -62,24 +62,28 @@ class HarmonicOscillator(Hamiltonian):
 
         V = self.potential_energy(r)
 
-        if num == True:
-            # branch for numerical and analytical energy
+        if num: # for timing the numerical and analytical kinetic energy calculations
             start = time.perf_counter()
             K_num = self.kinetic_energy_numerical(wf, r)
             end = time.perf_counter()
+            t_num = end - start
             E_L_num = K_num + V
 
             start = time.perf_counter()
             K_ana = self.kinetic_energy_analytical(wf, r)
+            if wf.a != 0.0:
+                K_ana += self.kinetic_energy_jastrow(wf, r)
             end = time.perf_counter()
+            t_ana = end - start
+            E_L_ana = K_ana + V
 
-            E_L_ana = K_ana + V
-            return E_L_num, E_L_ana
-        
-        else:
-            K_ana = self.kinetic_energy_analytical(wf, r)
-            E_L_ana = K_ana + V
-            return E_L_ana
+            return E_L_num, E_L_ana, t_num, t_ana
+
+        K_ana = self.kinetic_energy_analytical(wf, r)
+        if wf.a != 0.0:
+            K_ana += self.kinetic_energy_jastrow(wf, r)
+
+        return K_ana + V
         
     def compute_gradient(self, O, E_L):
         """
@@ -100,6 +104,9 @@ class HarmonicOscillator(Hamiltonian):
         return dE_dalpha, E_mean
 
     def potential_energy(self, r):
+        """
+        Function for gaussian potential energy 
+        """
         if self._dim <= 2:
             return 0.5 * self.omega_ho**2 * self.backend.sum(r**2)
 
@@ -160,16 +167,17 @@ class HarmonicOscillator(Hamiltonian):
     
     def O_alpha_analytic(self, wf, r):
         # r: shape (N, dim)
+        bk=self.backend
 
         if wf.beta is None:
-            return -torch.sum(r**2)
-        else:
-            beta = wf.beta
-            r_perp2 = torch.sum(r[:, :-1]**2)
-            z2 = torch.sum(r[:, -1]**2)
-            return -(r_perp2 + beta * z2)   # or beta**2 depending on your wf definitio
+            return -bk.sum(r**2)
         
+        beta = wf.beta
+        r_perp2 = bk.sum(r[:, :-1]**2)
+        z2 = bk.sum(r[:, -1]**2)
+        return -(r_perp2 + beta * z2)   
     
+
     def kinetic_energy_jastrow(self, wf, r):
         """
         Finding the analytical kinetic energy for a given wavefunction and positions.
@@ -178,39 +186,35 @@ class HarmonicOscillator(Hamiltonian):
 
         """
         a = wf.a
-        if a == 0:
+        N = r.shape[0]
+        if a == 0 or N==1:
             return 0.0
         
-        else:
-            N  = r.shape[0] #
-            bk = self.backend
-            a  = wf.a
+        N  = r.shape[0] #
+        bk = self.backend
+        a  = wf.a
 
-            #if only one particle or no interactions, return 0
-            if a == 0 or r.shape[0] == 1: 
-                return 0.0
-            
-            # retrieve raltive positions between all the particles ij. (rij=rji)
-            r_ij_abs, r_ij= wf.distance_and_distance_vec(r)
+        # retrieve raltive positions between all the particles ij. (rij=rji)
+        r_ij_abs, r_ij= wf.distance_and_distance_vec(r)
 
-            # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
-            iu = bk.triu_indices(N, N, offset=1) #for torch
-            rij = r_ij_abs[iu] 
+        # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
+        iu = bk.triu_indices(N, N, offset=1) #for torch
+        rij = r_ij_abs[iu] 
 
-            #retrieve laplacien, graident and cross_term from functions and calculate kinetic energy
-            laplacien_log_jastrow = self.laplacien_log_jastrow(rij, a)
-            gradient = self.grad_log_jastrow(rij, r_ij, a, iu, r)
-            gradient_log_jastrow = bk.sum(gradient**2)
-            cross_term = self.cross_term_jastrow(wf, r, rij, r_ij, a, iu)
+        #retrieve laplacien, graident and cross_term from functions and calculate kinetic energy
+        laplacien_log_jastrow = self.laplacien_log_jastrow(rij, a)
+        gradient = self.grad_log_jastrow(rij, r_ij, a, iu, r)
+        gradient_log_jastrow = bk.sum(gradient**2)
+        cross_term = self.cross_term_jastrow(wf, r, rij, r_ij, a, iu)
 
-            jastrow_kinetic_energy = laplacien_log_jastrow + gradient_log_jastrow + cross_term
-            
-            return jastrow_kinetic_energy
+        jastrow_kin_energy = -0.5 * (laplacien_log_jastrow + gradient_log_jastrow + cross_term)
+        
+        return jastrow_kin_energy
         
     def cross_term_jastrow(self, wf, r, rij, r_ij, a, iu):
         bk = self.backend
 
-        grad_log_gaussian = self.grad_log_gaussian(self, wf, r, wf.alpha)             # shape (N, dim)
+        grad_log_gaussian = self.grad_log_gaussian(wf, r)             # shape (N, dim)
         grad_log_jastrow = self.grad_log_jastrow(rij, r_ij, a, iu, r)  # shape (N, dim)
 
         cross = 2.0 * bk.sum(grad_log_gaussian * grad_log_jastrow)
@@ -248,20 +252,24 @@ class HarmonicOscillator(Hamiltonian):
         gradient.index_add_(0, iu[0], gij)
         gradient.index_add_(0, iu[1], -gij)
 
-        gradient_log_jastrow = bk.sum(gradient**2)
      
         return gradient
     
-    def grad_log_gaussian(self, wf, r, alpha):
-    
-        bk = self.backend
+    def grad_log_gaussian(self, wf, r):
+        """
+        function for finding the gradient of the gaussian part of the 
+        wavefunction for a given configuration of particles r
+
+        """
+
         alpha = wf.alpha
 
         if wf.beta is None:
             return -2.0 * alpha * r
-
+        
         # 3D anisotropic case: exp[-alpha(x^2 + y^2 + beta z^2)]
         grad_gaussian = -2.0 * alpha * r.clone()
         grad_gaussian[:, -1] = -2.0 * alpha * wf.beta * r[:, -1]
+
         return grad_gaussian
 
