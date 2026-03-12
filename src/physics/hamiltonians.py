@@ -1,4 +1,3 @@
-from tracemalloc import start
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -81,7 +80,25 @@ class HarmonicOscillator(Hamiltonian):
             K_ana = self.kinetic_energy_analytical(wf, r)
             E_L_ana = K_ana + V
             return E_L_ana
-    
+        
+    def compute_gradient(self, O, E_L):
+        """
+        Finding gradient with respect to alpha using the formula: dE/dalpha = 2 * ( <E_L O> - <E_L><O> )
+        and returns that and mean energy
+
+        E_L: shape (MC_cycles,)
+        O: shape (MC_cycles,)
+        """
+
+        E_mean = E_L.mean()
+        O_mean = O.mean()
+
+        OE_mean = (E_L * O).mean()
+
+        dE_dalpha = 2 * (OE_mean - E_mean * O_mean)
+
+        return dE_dalpha, E_mean
+
     def potential_energy(self, r):
         if self._dim <= 2:
             return 0.5 * self.omega_ho**2 * self.backend.sum(r**2)
@@ -91,6 +108,7 @@ class HarmonicOscillator(Hamiltonian):
             self.omega_ho**2 * self.backend.sum(r[:, :-1]**2)
             + omega_z**2 * self.backend.sum(r[:, -1]**2)
         )
+
     
     def kinetic_energy_numerical(self, wf, r):
         
@@ -112,7 +130,6 @@ class HarmonicOscillator(Hamiltonian):
         if wf.beta == None:  
              
             K_ana = -0.5 * (-2.0 * alpha * self._N * self._dim + 4.0 * alpha**2 * self.backend.sum(r**2))
-
 
         else:
             beta = wf.beta
@@ -152,15 +169,99 @@ class HarmonicOscillator(Hamiltonian):
             z2 = torch.sum(r[:, -1]**2)
             return -(r_perp2 + beta * z2)   # or beta**2 depending on your wf definitio
         
-    def compute_gradient(self, O, E_L):
-        # r: shape (N, dim) 
     
-        E_mean = E_L.mean()
-        O_mean = O.mean()
+    def kinetic_energy_jastrow(self, wf, r):
+        """
+        Finding the analytical kinetic energy for a given wavefunction and positions.
 
-        OE_mean = (E_L * O).mean()
+        r: shape (N, dim)
 
-        dE_dalpha = 2 * (OE_mean - E_mean * O_mean)
+        """
+        a = wf.a
+        if a == 0:
+            return 0.0
+        
+        else:
+            N  = r.shape[0] #
+            bk = self.backend
+            a  = wf.a
 
-        return dE_dalpha, E_mean
- 
+            #if only one particle or no interactions, return 0
+            if a == 0 or r.shape[0] == 1: 
+                return 0.0
+            
+            # retrieve raltive positions between all the particles ij. (rij=rji)
+            r_ij_abs, r_ij= wf.distance_and_distance_vec(r)
+
+            # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
+            iu = bk.triu_indices(N, N, offset=1) #for torch
+            rij = r_ij_abs[iu] 
+
+            #retrieve laplacien, graident and cross_term from functions and calculate kinetic energy
+            laplacien_log_jastrow = self.laplacien_log_jastrow(rij, a)
+            gradient = self.grad_log_jastrow(rij, r_ij, a, iu, r)
+            gradient_log_jastrow = bk.sum(gradient**2)
+            cross_term = self.cross_term_jastrow(wf, r, rij, r_ij, a, iu)
+
+            jastrow_kinetic_energy = laplacien_log_jastrow + gradient_log_jastrow + cross_term
+            
+            return jastrow_kinetic_energy
+        
+    def cross_term_jastrow(self, wf, r, rij, r_ij, a, iu):
+        bk = self.backend
+
+        grad_log_gaussian = self.grad_log_gaussian(self, wf, r, wf.alpha)             # shape (N, dim)
+        grad_log_jastrow = self.grad_log_jastrow(rij, r_ij, a, iu, r)  # shape (N, dim)
+
+        cross = 2.0 * bk.sum(grad_log_gaussian * grad_log_jastrow)
+        return cross
+        
+    def laplacien_log_jastrow(self, rij, a):
+        """
+        calculates the jastrow factor for a given configuration of particles r
+        r: shape (N, dim)
+        
+        """
+        bk = self.backend
+        # hard-core condition 
+        if bk.any(rij <= a):
+            return -bk.inf
+        
+        #calculate laplacien in two steps
+        term_1 = 2.0 * bk.sum(2.0 * a / (rij * (rij - a)))
+        term_2 = 2.0 * bk.sum(a**2 / (rij**2 * (rij - a)**2))
+
+        laplacien_log_jastrow = term_1 - term_2
+
+   
+        return laplacien_log_jastrow
+
+
+    def grad_log_jastrow(self, rij, r_ij, a, iu, r):
+        bk = self.backend
+        #calculate gradient
+        A = a / (rij**2 * (rij - a))   # shape (num_pairs,)
+        gij = A[:, None] * r_ij[iu]                # pair gradient contributions
+
+        gradient = bk.zeros_like(r)            # shape (N, dim)
+
+        gradient.index_add_(0, iu[0], gij)
+        gradient.index_add_(0, iu[1], -gij)
+
+        gradient_log_jastrow = bk.sum(gradient**2)
+     
+        return gradient
+    
+    def grad_log_gaussian(self, wf, r, alpha):
+    
+        bk = self.backend
+        alpha = wf.alpha
+
+        if wf.beta is None:
+            return -2.0 * alpha * r
+
+        # 3D anisotropic case: exp[-alpha(x^2 + y^2 + beta z^2)]
+        grad_gaussian = -2.0 * alpha * r.clone()
+        grad_gaussian[:, -1] = -2.0 * alpha * wf.beta * r[:, -1]
+        return grad_gaussian
+

@@ -61,29 +61,67 @@ class WaveFunction:
         if a == 0 or r.shape[0] == 1: 
             return 0.0
 
-        diff = r[:, None, :] - r[None, :, :]         # make a  (N, N, dim) array with differences
-        r_ij = bk.linalg.norm(diff, dim=-1)         # (N, N) distance matrix with r_ij[i, j] = |r_i - r_j| 
+        r_ij_abs, r_ij= self.distance_and_distance_vec(r)
 
         # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
         iu = bk.triu_indices(N, N, offset=1) #for torch
-        rij = r_ij[iu] 
+        rij_abs_u = r_ij_abs[iu]  # upper triangular
+        # hard-core condition 
+        if bk.any(rij_abs_u <= a):
+            return -bk.inf
+        
+        # return the total jastrow factor in log space
+
+        return bk.sum(bk.log(1.0 - a / rij_abs_u))
+    
+    def distance_and_distance_vec(self, r):
+        """ 
+        function for calculating relative positions for the particles
+        r: shape (N, dim)
+        """
+    
+        bk = self.backend
+        a = self.a
+        N = r.shape[0]
+
+        #if only one particle or no interactions, return 0
+        if a == 0 or r.shape[0] == 1: 
+            return 0.0
+
+        r_ij = r[:, None, :] - r[None, :, :]         # make a  (N, N, dim) array with differences
+        r_ij_abs = bk.linalg.norm(r_ij, dim=-1)         # (N, N) distance matrix with r_ij[i, j] = |r_i - r_j| 
+
+        return r_ij_abs, r_ij
+    
+    
+
+    def jastrow_single(self,r, particle_idx):
+        """
+        calculating jastrow factor for a single particle 
+        r: shape (N, dim)
+        particle_idx: int
+        """
+        a = self.a
+        bk=self.backend
+
+        # finds distances between particle_idx and all other particles
+        rij=self.single_distances(r, particle_idx)
 
         # hard-core condition 
         if bk.any(rij <= a):
             return -bk.inf
         
-        # return the total jastrow factor in log space
-
+        # return total jastrow factor in log space for a single particle
         return bk.sum(bk.log(1.0 - a / rij))
     
-    def jastrow_single(self,r, particle_idx):
+    def single_distances(self, r, particle_idx):
         """
-        calculating jastrow factor for a single particle 
+        function for finding distances between particle_idx and all other particles
         r: shape (N, dim)
+        particle_idx: int
         """
-        a = self.a
+        a=self.a
         bk=self.backend
-
         #if only one particle or no interactions, return 0
         if a == 0 or r.shape[0] == 1: 
             return 0.0
@@ -96,14 +134,8 @@ class WaveFunction:
         mask = particle_indices != particle_idx     # create mask to exclude self-interaction
         rij = rij[mask]                             # shape (N-1, ) 
 
-        # hard-core condition 
-        if bk.any(rij <= a):
-            return -bk.inf
-        
-        # return total jastrow factor in log space for a single particle
-        return bk.sum(bk.log(1.0 - a / rij))
-
-
+        return rij
+    
     def log_prob(self, r):
         # function for calculating log|psi|^2 from log|psi|
 
