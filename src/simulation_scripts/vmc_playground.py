@@ -26,6 +26,7 @@ system.set_wf(
     config.wf_type,
     config.nparticles,
     config.dim,
+    config.a
 )
 
 # choose the sampler algorithm and scale

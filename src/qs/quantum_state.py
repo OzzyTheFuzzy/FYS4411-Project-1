@@ -59,7 +59,7 @@ class QS:
         self.logger = setup_logger(self.__class__.__name__, level=logger_level) if self._log else None
         self.sampler = None
         self.burn_in = None
-
+        self.a = 0.0        # Jastrow factor strength, set to 0 for no Jastrow factor
         if rng is None:
             self.rng = default_rng(self._seed)
         else:
@@ -70,13 +70,13 @@ class QS:
         self._is_trained_ = False
         self._sampling_performed = False
 
-    def set_wf(self, wf_type, nparticles, dim, ):
+    def set_wf(self, wf_type, nparticles, dim, a=0.0):
         self._N = nparticles
         self._dim = dim
         self._wf_type = wf_type
-
+        self.a = a
         # Create the wavefunction object
-        self.wf = VMC(nparticles=nparticles, dim=dim, backend=self._backend)
+        self.wf = VMC(nparticles=nparticles, dim=dim, backend=self._backend, a=self.a)
 
         self._is_initialized_ = True
 
@@ -206,9 +206,9 @@ class QS:
 
         alpha = torch.tensor(alpha_0, dtype=torch.float64)
 
-        tol = 1e-4
-        patience = 5
-        no_improve_count = 0
+        tol = 1e-4      #tolerance for early stopping based on energy improvement
+        patience = 5    #number of iterations to wait for improvement before stopping
+        no_improve_count = 0 
         best_energy = float("inf")
         for alpha_j in range(num_iterations):
 

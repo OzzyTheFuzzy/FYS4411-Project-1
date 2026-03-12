@@ -21,15 +21,16 @@ class WaveFunction:
         self.a = a
         
     def __call__(self, r, alpha=None, beta=None):
-        a = self.alpha if alpha is None else alpha #if alpha is not provided, use self.alpha
-        b = self.beta if beta is None else beta #if beta is not provided, use self.beta
+        alpha = self.alpha if alpha is None else alpha #if alpha is not provided, use self.alpha
+        beta = self.beta if beta is None else beta     #if beta is not provided, use self.beta
 
         #if jastrow factor is not zero, calculate it and add it to the gaussian log psi
-        if a != 0:
+        if self.a != 0:
             j = self.jastrow(r) # calculate jastrow factor
         else:
             j = 0
-        return self.gaussian_log_psi(r, a, b) + j
+
+        return self.gaussian_log_psi(r, alpha, beta) + j
 
     def gaussian_log_psi(self, r, alpha=None, beta=None):
         """Instance Gaussian log-psi using this WaveFunction's backend.
@@ -37,14 +38,14 @@ class WaveFunction:
         Uses `self.backend` so no backend argument is needed and torch tensors
         will be used when `self.backend` is `torch`.
         """
-        a = self.alpha if alpha is None else alpha
-        b = self.beta if beta is None else beta
+        alpha = self.alpha if alpha is None else alpha
+        beta = self.beta if beta is None else beta
         bk = self.backend
         
-        if b is None:
-            return -a * bk.sum(r**2)
+        if beta is None:
+            return -alpha * bk.sum(r**2)
         else:
-            return -a * (bk.sum(r[:, :-1]**2) + b * bk.sum(r[:, -1]**2))
+            return -alpha * (bk.sum(r[:, :-1]**2) + beta * bk.sum(r[:, -1]**2))
         
     def jastrow(self, r):
         """
@@ -56,11 +57,12 @@ class WaveFunction:
         N = r.shape[0] #
         bk = self.backend
 
-        if a is None or N == 1: #no interactions if a is zero or only one particle
+        #if only one particle or no interactions, return 0
+        if a == 0 or r.shape[0] == 1: 
             return 0.0
 
         diff = r[:, None, :] - r[None, :, :]         # make a  (N, N, dim) array with differences
-        r_ij = bk.linalg.norm(diff, axis=-1)         # (N, N) distance matrix with r_ij[i, j] = |r_i - r_j| 
+        r_ij = bk.linalg.norm(diff, dim=-1)         # (N, N) distance matrix with r_ij[i, j] = |r_i - r_j| 
 
         # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
         iu = bk.triu_indices(N, N, offset=1) #for torch
@@ -73,7 +75,34 @@ class WaveFunction:
         # return the total jastrow factor in log space
 
         return bk.sum(bk.log(1.0 - a / rij))
- 
+    
+    def jastrow_single(self,r, particle_idx):
+        """
+        calculating jastrow factor for a single particle 
+        r: shape (N, dim)
+        """
+        a = self.a
+        bk=self.backend
+
+        #if only one particle or no interactions, return 0
+        if a == 0 or r.shape[0] == 1: 
+            return 0.0
+        
+        # calculate distances to other particles
+        diff = r - r[particle_idx]           # shape (N, dim)
+        rij = bk.linalg.norm(diff, dim=-1)   # shape(N, )
+        
+        particle_indices = bk.arange(r.shape[0])    # create array with particle indices
+        mask = particle_indices != particle_idx     # create mask to exclude self-interaction
+        rij = rij[mask]                             # shape (N-1, ) 
+
+        # hard-core condition 
+        if bk.any(rij <= a):
+            return -bk.inf
+        
+        # return total jastrow factor in log space for a single particle
+        return bk.sum(bk.log(1.0 - a / rij))
+
 
     def log_prob(self, r):
         # function for calculating log|psi|^2 from log|psi|
@@ -81,32 +110,43 @@ class WaveFunction:
         logpsi = self(r)      # log|psi|
         return 2.0 * logpsi   # log|psi|^2
     
-    def log_prob_single(self, r_single_wf, alpha=None, beta=None):
+    def log_prob_single(self, r_single_wf, r_all, particle_idx, alpha=None, beta=None):
         
-        """Calculate log|psi|^2 for a single particle"""
+        """Calculate log|psi|^2 for a single particle with or without particle interactions
+        r_single_wf: shape (dim, ) position of the single particle 
+        r_all: shape (N, dim) positions of all particles
+        particle_idx: index of the single particle we want to calculate log|psi|^2 for
+        """
 
-        a = self.alpha if alpha is None else alpha
-        b = self.beta if beta is None else beta
+        alpha = self.alpha if alpha is None else alpha
+        beta = self.beta if beta is None else beta
         bk = self.backend
-        
-        if b is None:
-            return -2 * a * bk.sum(r_single_wf**2)
+
+        if self.a != 0:
+            j = self.jastrow_single(r_all, particle_idx=particle_idx) # calculate jastrow factor
         else:
-            return -2 * a * (bk.sum(r_single_wf[:-1]**2) + b * r_single_wf[-1]**2) #returns logprob for a single particle with 3 dimensions
+            j = 0.0
         
+        if beta is None:
+            g= -1 * alpha * bk.sum(r_single_wf**2)
+        else:
+            g= -1 * alpha * (bk.sum(r_single_wf[:-1]**2) + beta * r_single_wf[-1]**2)  #returns logprob for a single particle with 3 dimensions
+        
+        return 2 * (g + j)
+    
     def quantum_force_single(self, r_single_wf, alpha=None, beta=None):
         """Calculate the quantum force for a single particle"""
 
-        a = self.alpha if alpha is None else alpha
-        b = self.beta if beta is None else beta
+        alpha = self.alpha if alpha is None else alpha
+        beta = self.beta if beta is None else beta
         bk = self.backend
 
         #calculate quantum force
-        q_force = -4 * a * r_single_wf
+        q_force = -4 * alpha * r_single_wf
         
-        if b is not None:
+        if beta is not None:
             q_force = q_force.clone()
-            q_force[..., -1] *= b
+            q_force[..., -1] *= beta
             
         return q_force
     
@@ -120,10 +160,11 @@ class VMC:
         logger=None,
         logger_level="INFO",
         backend="torch",
+        a=0.0,
     ):
         self._configure_backend(backend)
         self._initialize_vars(nparticles, dim, rng, log, logger, logger_level)
-
+        self.a = a #initialize the jastrow factor strength, set to 0 for no jastrow factor
         r = 0 # initialize the positions randomly
 
         self._initialize_variational_params()
@@ -221,6 +262,6 @@ class VMC:
         self.params["beta"] = self.beta
 
         # Attach a WaveFunction instance using the selected backend
-        self.wf = WaveFunction(self.backend, self.alpha, self.beta)
+        self.wf = WaveFunction(self.backend, self.alpha, self.beta, self.a)
 
         return self

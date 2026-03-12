@@ -22,3 +22,4 @@ alpha_array = np.linspace(0.1, 0.9, 11)
 dimensions = np.array([1, 2])
 nparticles_array = np.array([1])
 omega = 1.0
+a=0.0    # Jastrow factor strength, set to 0 for no interactions

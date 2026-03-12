@@ -19,3 +19,4 @@ wf_type = "vmc"
 seed = 142
 burn_in = training_cycles * 0.2 # number of initial samples to discard as burn-in when training
 alpha_array = np.linspace(0.1, 0.9, 11) # array of alpha values to train on
+a = 0.05     # Jastrow factor strength, set to 0 for no interactions

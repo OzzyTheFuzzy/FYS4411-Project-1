@@ -24,16 +24,21 @@ class Metropolis(Sampler):
         # Choose one random particle to move
         n_particles = state.positions.shape[0]
         particle_idx = self.rng.integers(0, n_particles)
+        r = state.positions
+        # Create array for proposed configuration with all particles
+        r_prop = r.clone()
 
-        # Create proposed configuration with all particles
-        r_prop = state.positions.clone()
-        log_prop_old= wf.wf.log_prob_single(r_prop[particle_idx]) # find the log probability of the current positions of the particle we want to move
+        # find the log probability of the current positions of the particle we want to move
+        log_prop_old= wf.wf.log_prob_single(r_prop[particle_idx], r, particle_idx) 
         
+        # change the position of the chosen particle by adding a random displacement
         r_prop[particle_idx] = state.positions[particle_idx] + self.scale * self.rng.normal(size=state.positions[particle_idx].shape)
         
-        logp_prop_new = wf.wf.log_prob_single(r_prop[particle_idx])    # find the log probability of the proposed positions
+        # find the log probability of the proposed positions of the particle we want to move
+        logp_prop_new = wf.wf.log_prob_single(r_prop[particle_idx], r_prop, particle_idx)    # find the log probability of the proposed positions
         
-        log_alpha = logp_prop_new - log_prop_old        # calculate the log acceptance probability
+        # calculate the log acceptance probability
+        log_alpha = logp_prop_new - log_prop_old       
 
         # draw random number and accept/reject the move and update the state accordingly
         u = self.rng.uniform()

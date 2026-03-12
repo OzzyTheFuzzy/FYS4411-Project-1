@@ -28,6 +28,7 @@ def find_energy_vmc(dim, nparticles, alpha_array, config=config):
         config.wf_type,
         nparticles,
         dim,
+        config.a
     )
 
     # choose the sampler algorithm and scale

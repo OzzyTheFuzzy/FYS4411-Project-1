@@ -23,3 +23,5 @@ alpha_array = np.array([0.7])
 dim = 1
 nparticles = 100
 omega = 1.0 # harmonic oscillator 
+
+a = 0.0    # Jastrow factor strength, set to 0 for no interactions

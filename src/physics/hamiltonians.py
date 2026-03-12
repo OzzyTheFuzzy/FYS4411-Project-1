@@ -121,6 +121,10 @@ class HarmonicOscillator(Hamiltonian):
         return K_ana
     
     def compute_gradients(self, wf, r):
+
+        """
+        function for numerical gradients using torch's autograd
+        """
         r = r.clone().detach().requires_grad_(True)
 
         def logpsi_flat(r_flat):
