@@ -53,6 +53,16 @@ class Metropolis(Sampler):
             new_logp = state.logp
             new_n_accepted = state.n_accepted
 
+
+        new_delta = state.delta + 1
+
+
+        """
+        # periodic resync every 100 steps to prevent logp drift 
+        if new_delta % 100 == 0:
+            new_logp = wf.wf.log_prob(new_positions)
+        """
+
         new_state = State(
             positions=new_positions,
             logp=new_logp,

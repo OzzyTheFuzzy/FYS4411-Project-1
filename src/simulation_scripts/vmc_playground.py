@@ -47,12 +47,16 @@ system.train(
     MC_training_cycles=config.training_cycles,
     alpha_array=alpha_array,
     burn_in=config.burn_in,
+    num=config.num
 )
 
-
-# now we get the results or do whatever we want with them
-results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
+# make initial state for final sampling 
+system._make_initial_state() 
+results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed)
+print(system._scale)
 print(results)
+
+
 # display the results
 
 energies = np.array(system.mean_ana_energies)  # or mean_num_energies

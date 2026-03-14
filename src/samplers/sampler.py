@@ -22,23 +22,6 @@ class Sampler:
         self.burn_in = None
         self.set_hamiltonian(hamiltonian)
 
-    def sample(self, wf, state, nsamples, nchains=1, seed=None):
-        nchains = check_and_set_nchains(nchains, self._logger)
-        seeds = generate_seed_sequence(seed, nchains)
-        
-        if nchains == 1:
-            chain_id = 0
-            burn_in = self.burn_in if self.burn_in is not None else 0
-            self.results = self._sample(wf, nsamples, state, self.scale, seeds[0], chain_id, burn_in)
-        else:
-            # Parallelize
-            pass
-
-        self._sampling_performed_ = True
-        if self._logger is not None:
-            self._logger.info("Sampling done")
-
-        return self.results
 
 
     def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles,seed, burn_in=0, need_O = False, num= False):
@@ -60,18 +43,16 @@ class Sampler:
             if i < burn_in:
                 continue
 
-            r = state.positions
-
             if num:
-                E_num, E_ana = self.hamiltonian.local_energy(wf, r, num=True)
+                E_num, E_ana = self.hamiltonian.local_energy(wf, state.positions, num=True)
                 E_num_list.append(E_num.detach())
                 E_ana_list.append(E_ana.detach())
             else:
-                E_ana = self.hamiltonian.local_energy(wf, r, num=False)
+                E_ana = self.hamiltonian.local_energy(wf, state.positions, num=False)
                 E_ana_list.append(E_ana.detach())
 
             if need_O:
-                O_val = self.hamiltonian.O_alpha_analytic(wf, r)
+                O_val = self.hamiltonian.O_alpha_analytic(wf, state.positions)
                 O_list.append(O_val.detach())
 
         E_ana = torch.stack(E_ana_list)
@@ -83,61 +64,51 @@ class Sampler:
         return E_ana, E_num, O, accept_rate
 
     def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False):
-        """To be called by process. Here the actual sampling is performed."""
+        """
+        Function for final sampling 
+        """
 
-        if self._logger is not None:
-            t_range = tqdm(
-                range(nsamples),
-                desc=f"[Sampling progress] Chain {chain_id+1}",
-                position=chain_id,
-                leave=True,
-                colour="green",
-            )
-        else:
-            t_range = range(nsamples)
+        burn_in = nsamples * 0.2 if burn_in is None else burn_in
+        
+        # Use different seed for final alpha
 
-        # Config and efffective sample number
+        E_ana, E_num, _, accept_rate = self._sample_energy_and_optional_O(
+            wf=wf,
+            state=state,
+            MC_training_cycles=nsamples,
+            seed=seed,
+            burn_in=burn_in,
+            need_O=False,
+            num=num,
+        )
+        
         n_effective = nsamples - burn_in
-
-        state = State(state.positions, state.logp, 0, state.delta)
-        analytical_energies = torch.empty(n_effective, dtype=torch.float64)
-        numerical_energies = torch.empty(n_effective, dtype=torch.float64)
-
         
-        for i in t_range:
-            
-            metropolis_state = self.step(wf, state, seed) #
-            r_new = metropolis_state.positions
+        # compute mean energies 
+        mean_ana_energy = E_ana.mean().item()
+        mean_num_energy = E_num.mean().item() if num else mean_ana_energy
 
-            if i >= burn_in:
-        
-                if num == True:
-                    num_energy, ana_energy = self.hamiltonian.local_energy(wf, r_new, num) #calculate num, ana energies
-                    numerical_energies[i-burn_in] = num_energy.detach()
-                else:
-                    ana_energy= self.hamiltonian.local_energy(wf, r_new) #calculate num, ana energies
-                    numerical_energies[i-burn_in] = 0
+        e = E_ana.detach().cpu().numpy()
+        print("mean:", e.mean())
+        print("std:", e.std(ddof=1))
+        print("min:", e.min(), "max:", e.max())
+        print("count E < -20:", np.sum(e < -20))
+        print("count E < -50:", np.sum(e < -50))
+        print(np.percentile(e, [0.1, 1, 5, 50, 95, 99, 99.9]))
+        print(np.max(E_ana.cpu().numpy()), np.min(E_ana.cpu().numpy()))
 
-                analytical_energies[i-burn_in] = ana_energy.detach()
-            state = metropolis_state # update the state for next iteration
-
-
-        if self._logger is not None:
-            t_range.clear()
-
-        print(analytical_energies.dtype)
-        
         sample_results = {
             "chain_id": chain_id,
-            "energy_numerical":  torch.mean(numerical_energies).item(),  # calculate mean numerical energy 
-            "energy_analytical": torch.mean(analytical_energies).item(),  # calculate mean analytical energy
-            "std_error": ( analytical_energies.std(unbiased=True) 
-                        / torch.sqrt(torch.tensor(n_effective, dtype=analytical_energies.dtype))).item(),
-            "variance": analytical_energies.var(unbiased=False).item(),
+            "energy_numerical":  mean_num_energy,  # calculate mean numerical energy 
+            "energy_analytical": mean_ana_energy,  # calculate mean analytical energy
+            "std_error": ( E_ana.std(unbiased=True) 
+                        / torch.sqrt(torch.tensor(n_effective, dtype=E_ana.dtype))).item(),
+            "variance": E_ana.var(unbiased=True).item(),
             "scale": self.scale, 
             "effective samples": n_effective,
             "MC cycles": nsamples,
             "alpha": wf.alpha.item(), # get the alpha value from the wave function
+            "accept rate": accept_rate,
         }
     
         return sample_results

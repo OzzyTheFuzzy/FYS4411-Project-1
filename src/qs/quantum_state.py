@@ -91,15 +91,23 @@ class QS:
             self.sampler.set_hamiltonian(self.hamiltonian)
             
     def _make_initial_state(self):
+
         # Start positions near origin (Gaussian). Shape: (N, dim)
-        
-        positions = 0.1 * torch.randn(self._N, self._dim, dtype=torch.float64)
+        while True:
+            positions = 0.1 * torch.randn(self._N, self._dim, dtype=torch.float64)
 
+            # safeguard for the hard core condition
+            if self.a != 0.0:
+                r_ij_abs, _ = self.wf.wf.distance_and_distance_vec(positions)
+                iu = torch.triu_indices(self._N, self._N, offset=1)
+                rij = r_ij_abs[iu[0], iu[1]]
+                if torch.any(rij <= self.a):
+                    continue
 
-        # Wavefunction log-probability at positions. self.wf is a VMC object
-        logp = self.wf.wf.log_prob(positions)  
+            # Wavefunction log-probability at positions. self.wf is a VMC object
+            logp = self.wf.wf.log_prob(positions)  
 
-        return State(positions=positions, logp=logp, n_accepted=0, delta=0)
+            return State(positions=positions, logp=logp, n_accepted=0, delta=0)
 
     def set_sampler(self, mcmc_alg, scale=0.1):
 
@@ -139,17 +147,20 @@ class QS:
 
         self._is_initialized()
         self._training_cycles = MC_training_cycles
-
+        self.burn_in = burn_in
         self.alpha_array = alpha_array
         self.mean_num_energies = []
         self.mean_ana_energies = []
-
-        for a in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
-
+        
+        for alpha in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
+            
             print("N, D:", self.hamiltonian._N, self.hamiltonian._dim)
             print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
 
-            a_tensor = torch.tensor(a, dtype=torch.float64)
+            a_tensor = torch.tensor(alpha, dtype=torch.float64)
+            idx = np.where(alpha_array == alpha)[0].item()
+            self.sampler.rng = np.random.default_rng(self._seed+idx * 17) # use different seed for each alpha to get different samples
+            
 
             # update wavefunction alpha
             self.wf.alpha = a_tensor
@@ -157,13 +168,13 @@ class QS:
 
             # update sampler scale
             if self.mcmc_alg == "metropolis" or self.mcmc_alg == "langevin":
-                self.sampler.scale = self._scale * np.sqrt(1.0 / a)
+                self.sampler.scale = self._scale * np.sqrt(1.0 / alpha)
 
             state= self._make_initial_state() # make initial state for sampling
             # call sample function from sampler class
             E_ana, E_num, _, accept_rate = self.sampler._sample_energy_and_optional_O(
                 self.wf, state,
-                MC_training_cycles, seed=self._seed,
+                MC_training_cycles, seed=self._seed, # use different seed for each alpha to get different samples, but deterministic across runs
                 burn_in=burn_in,
                 need_O=False,
                 num=num,
@@ -178,7 +189,7 @@ class QS:
             self.mean_ana_energies.append(mean_ana_energy)
 
             print(
-                f"alpha={a:.3f} accept_rate={accept_rate:.3f} "
+                f"alpha={alpha:.3f} accept_rate={accept_rate:.3f} "
                 f"mean_E_ana={mean_ana_energy:.6f}, scale={self.sampler.scale:.4f}")
 
         # pick best alpha
@@ -221,7 +232,7 @@ class QS:
 
             E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
                 self.wf, state,
-                MC_training_cycles, seed=self._seed,
+                MC_training_cycles, seed=self._seed+alpha_j*17,
                 burn_in=burn_in,
                 need_O=True,
                 )
@@ -272,8 +283,18 @@ class QS:
         # Pass burn_in to sampler if set
         if hasattr(self, 'burn_in'):
             self.sampler.burn_in = self.burn_in
-        
-        self._results = self.sampler.sample(self.wf, self._make_initial_state(), nsamples, nchains, seed) # call the sample method from the sampler class, which will perform the sampling and return the results
+            
+        self.sampler.scale = self._scale * np.sqrt(1.0 / self.wf.alpha.item())
+        # call the sample method from the sampler class
+        self._results = self.sampler._sample(
+        wf=self.wf,
+        nsamples=nsamples,
+        state=self._make_initial_state(),
+        scale=self.sampler.scale,
+        seed=seed,
+        chain_id=0,
+        burn_in=self.burn_in if self.burn_in is not None else int(nsamples * 0.2),
+    )
         return self._results
     
 

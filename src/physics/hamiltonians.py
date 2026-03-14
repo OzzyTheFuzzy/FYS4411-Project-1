@@ -71,7 +71,7 @@ class HarmonicOscillator(Hamiltonian):
 
             start = time.perf_counter()
             K_ana = self.kinetic_energy_analytical(vmc, r)
-            if vmc.a != 0.0:
+            if vmc.a > 0.0:
                 K_ana += self.kinetic_energy_jastrow(vmc, r)
             end = time.perf_counter()
             t_ana = end - start
@@ -82,7 +82,7 @@ class HarmonicOscillator(Hamiltonian):
         K_ana = self.kinetic_energy_analytical(vmc, r)
         if vmc.a != 0.0:
             K_ana += self.kinetic_energy_jastrow(vmc, r)
-
+    
         return K_ana + V
         
     def compute_gradient(self, O, E_L):
@@ -192,15 +192,17 @@ class HarmonicOscillator(Hamiltonian):
         
         N  = r.shape[0] #
         bk = self.backend
-        a  = vmc.a
+       
 
         # retrieve raltive positions between all the particles ij. (rij=rji)
         r_ij_abs, r_ij= vmc.wf.distance_and_distance_vec(r)
-
+        
         # take only upper triangle to acccount for double counting and avoid self-interaction (i=j)
         iu = bk.triu_indices(N, N, offset=1) #for torch
         rij = r_ij_abs[iu[0], iu[1]] 
 
+        if bk.any(rij <= a):
+            return -bk.inf
         #retrieve laplacien, graident and cross_term from functions and calculate kinetic energy
         laplacien_log_jastrow = self.laplacien_log_jastrow(rij, a)
         gradient = self.grad_log_jastrow(rij, r_ij, a, iu, r)
@@ -242,8 +244,10 @@ class HarmonicOscillator(Hamiltonian):
 
 
     def grad_log_jastrow(self, rij, r_ij, a, iu, r):
-        bk = self.backend
 
+        bk = self.backend
+        if bk.any(rij <= a):
+            return -bk.inf
         # constants
         A = a / (rij**2 * (rij - a)) 
         
