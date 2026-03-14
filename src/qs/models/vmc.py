@@ -19,6 +19,7 @@ class WaveFunction:
         self.alpha = alpha
         self.beta = beta
         self.a = a
+      
         
     def __call__(self, r, alpha=None, beta=None):
         alpha = self.alpha if alpha is None else alpha #if alpha is not provided, use self.alpha
@@ -76,7 +77,7 @@ class WaveFunction:
     
     def distance_and_distance_vec(self, r):
         """ 
-        function for calculating relative positions for the particles
+        function for calculating relative positions for all the particles
         r: shape (N, dim)
         """
     
@@ -105,7 +106,7 @@ class WaveFunction:
         bk=self.backend
 
         # finds distances between particle_idx and all other particles
-        rij=self.single_distances(r, particle_idx)
+        rij,diff=self.single_distances(r, particle_idx)
 
         # hard-core condition 
         if bk.any(rij <= a):
@@ -134,7 +135,8 @@ class WaveFunction:
         mask = particle_indices != particle_idx     # create mask to exclude self-interaction
         rij = rij[mask]                             # shape (N-1, ) 
 
-        return rij
+        # return distances between particle_idx and all other particles, excluding self-interaction
+        return rij, diff[mask] # return both distances and relative positions to other particles for the quantum force calculation
     
     def log_prob(self, r):
         # function for calculating log|psi|^2 from log|psi|
@@ -166,7 +168,7 @@ class WaveFunction:
         
         return 2 * (g + j)
     
-    def quantum_force_single(self, r_single_wf, alpha=None, beta=None):
+    def quantum_force_single(self, r_single_wf, r_all, particle_idx, alpha=None, beta=None):
         """Calculate the quantum force for a single particle"""
 
         alpha = self.alpha if alpha is None else alpha
@@ -179,6 +181,12 @@ class WaveFunction:
         if beta is not None:
             q_force = q_force.clone()
             q_force[..., -1] *= beta
+
+        # add contribution from jastrow factor if interactions are present
+        if self.a != 0:
+            rij, diff = self.single_distances(r_all, particle_idx) # get distances and relative positions to other particles
+            A = self.a / (rij**2 * (rij - self.a))
+            q_force = q_force + 2.0 * bk.sum(A[:, None] * diff, dim=0)
             
         return q_force
     
@@ -193,13 +201,15 @@ class VMC:
         logger_level="INFO",
         backend="torch",
         a=0.0,
+        beta=None,
     ):
         self._configure_backend(backend)
         self._initialize_vars(nparticles, dim, rng, log, logger, logger_level)
         self.a = a #initialize the jastrow factor strength, set to 0 for no jastrow factor
+        self.beta = beta
         r = 0 # initialize the positions randomly
 
-        self._initialize_variational_params()
+        self._initialize_variational_params(init_beta=beta)
         self.state = 0 # take a look at the qs.utils State class
 
         """

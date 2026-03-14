@@ -26,29 +26,29 @@ system.set_wf(
     config.wf_type,
     config.nparticles,
     config.dim,
-    config.a
+    config.a,
+    config.beta
 )
 
 # choose the sampler algorithm and scale
 system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
 
 # choose the hamiltonian
-system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
+system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=config.omega_z)
 
 # choose the optimizer, learning rate, and other properties depending on the optimizer
 system.set_optimizer(
     optimizer=config.optimizer,
     eta=config.eta,
 )
-alpha_array = config.alpha_array
 
 # train the system, meaning we find the optimal variational parameters for the wave function
-system.train(
-    MC_training_cycles=config.training_cycles,
-    alpha_array=alpha_array,
-    burn_in=config.burn_in,
-    num=config.num
-)
+system.train(MC_training_cycles=config.training_cycles, 
+            alpha_array=config.alpha_array, 
+            burn_in=config.burn_in, 
+            num_iterations=config.iterations, 
+            alpha_0=config.alpha_0, 
+            num=config.num)
 
 # make initial state for final sampling 
 system._make_initial_state() 
@@ -58,9 +58,8 @@ print(results)
 
 
 # display the results
-
-energies = np.array(system.mean_ana_energies)  # or mean_num_energies
-
+energies = np.array(system.mean_ana_energies)  # the mean ana energies for each alpha tested
+alpha_array = system.alpha_array_tested  # the alpha values that were actually tested during training
 plt.figure()
 plt.plot(alpha_array, energies, marker="o")
 plt.xlabel("Alpha")

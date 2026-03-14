@@ -88,15 +88,6 @@ class Sampler:
         mean_ana_energy = E_ana.mean().item()
         mean_num_energy = E_num.mean().item() if num else mean_ana_energy
 
-        e = E_ana.detach().cpu().numpy()
-        print("mean:", e.mean())
-        print("std:", e.std(ddof=1))
-        print("min:", e.min(), "max:", e.max())
-        print("count E < -20:", np.sum(e < -20))
-        print("count E < -50:", np.sum(e < -50))
-        print(np.percentile(e, [0.1, 1, 5, 50, 95, 99, 99.9]))
-        print(np.max(E_ana.cpu().numpy()), np.min(E_ana.cpu().numpy()))
-
         sample_results = {
             "chain_id": chain_id,
             "energy_numerical":  mean_num_energy,  # calculate mean numerical energy 

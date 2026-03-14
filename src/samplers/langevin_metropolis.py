@@ -23,32 +23,35 @@ class LangevinMetropolis(Sampler):
         D = 0.5          # diffusion coefficient for the Langevin proposal
         dt = self.scale  # time step for the Langevin proposal
         
-
-        # Choose one random particle to move and find its index
+    
+        # Choose one random particle to move
         n_particles = state.positions.shape[0]
         particle_idx = self.rng.integers(0, n_particles)
 
         # Create proposed configuration with all particles and define old positions of the particle we want to move
-        r_all = state.positions.clone()
-        r_old = r_all[particle_idx]
-        eta = torch.randn_like(r_old)  # N(0,1) torch tensor for the Langevin proposal
+        r_old = state.positions.clone()
+        r_prop = state.positions.clone()
+        r_old_single = r_prop[particle_idx].clone()  # ← clone to avoid view mutation
+        
+        eta = torch.randn_like(r_old_single)  # N(0,1) torch tensor for the Langevin proposal
 
         # Log probability and quantum force at the old position
-        log_prop_old = wf.wf.log_prob_single(r_old)
-        F_old = wf.wf.quantum_force_single(r_old)
+        log_prop_old= wf.wf.log_prob_single(r_old_single, r_old, particle_idx)
+        F_old = wf.wf.quantum_force_single(r_old_single, r_old, particle_idx)
 
-        # Propose new single-particle position using Langevin drift + Gaussian diffusion
-        r_prop_single = r_old + D * F_old * dt + (2*D*dt)**0.5 * eta
+        # Propose new single-particle position using Langevin drift + Gaussian diffusion and update r_prop
+        r_prop_single = r_old_single + D * F_old * dt + (2*D*dt)**0.5 * eta
+        r_prop[particle_idx] = r_prop_single
 
         # Quantum force at the proposed position
-        F_new = wf.wf.quantum_force_single(r_prop_single)
+        F_new = wf.wf.quantum_force_single(r_prop_single, r_prop, particle_idx)
 
         # Green's function displacement terms
-        diff_fwd = r_prop_single - r_old - D * F_old * dt
-        diff_bwd = r_old - r_prop_single - D * F_new * dt
+        diff_fwd = r_prop_single - r_old_single - D * F_old * dt
+        diff_bwd = r_old_single - r_prop_single - D * F_new * dt
 
-        #  find log alpha with the Green's function terms and the log probabilities at the old and proposed positions
-        log_prop_new = wf.wf.log_prob_single(r_prop_single)
+        # find log alpha with the Green's function terms and the log probabilities at the old and proposed positions
+        log_prop_new = wf.wf.log_prob_single(r_prop_single, r_prop, particle_idx)
         logG_fwd = -torch.sum(diff_fwd**2) / (4 * D * dt)   # log G(new | old)
         logG_bwd = -torch.sum(diff_bwd**2) / (4 * D * dt)   # log G(old | new)
         log_alpha = log_prop_new - log_prop_old + logG_bwd - logG_fwd  # log acceptance probability
@@ -58,8 +61,7 @@ class LangevinMetropolis(Sampler):
         accept = np.log(u) < min(0.0, log_alpha.detach().item())
 
         if accept:
-            new_positions = r_all.clone()
-            new_positions[particle_idx] = r_prop_single
+            new_positions = r_prop
             new_logp = state.logp - log_prop_old + log_prop_new
             new_n_accepted = state.n_accepted + 1
         else:

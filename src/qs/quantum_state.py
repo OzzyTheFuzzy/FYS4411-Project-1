@@ -70,13 +70,13 @@ class QS:
         self._is_trained_ = False
         self._sampling_performed = False
 
-    def set_wf(self, wf_type, nparticles, dim, a=0.0):
+    def set_wf(self, wf_type, nparticles, dim, a=0.0, beta=None):
         self._N = nparticles
         self._dim = dim
         self._wf_type = wf_type
         self.a = a
         # Create the wavefunction object
-        self.wf = VMC(nparticles=nparticles, dim=dim, backend=self._backend, a=self.a)
+        self.wf = VMC(nparticles=nparticles, dim=dim, backend=self._backend, a=self.a, beta=beta)
 
         self._is_initialized_ = True
 
@@ -140,7 +140,7 @@ class QS:
             self._optimizer = opt.Gd(eta=eta, optimizer_name="adam")
 
 
-    def train(self, MC_training_cycles, alpha_array, burn_in=0, num=False):
+    def train(self, MC_training_cycles, alpha_array, burn_in=0, num_iterations=20, alpha_0=None, num=False):
         """
         Train the wave function parameters using grid search over alpha_array.
         """
@@ -151,50 +151,100 @@ class QS:
         self.alpha_array = alpha_array
         self.mean_num_energies = []
         self.mean_ana_energies = []
+        self.alpha_array_tested =[]
+
+        if alpha_0 is not None:
+            alpha = torch.tensor(alpha_0, dtype=torch.float64)
+            alpha_array_tested = []
+            alpha_array_tested.append(alpha_0)
+            alpha_array =np.zeros(num_iterations) # placeholder for alpha values during training
+            tol = 1e-4      #tolerance for early stopping based on energy improvement
+            patience = 7    #number of iterations to wait for improvement before stopping
+            no_improve_count = 0 
+            best_energy = float("inf")
+            iteration = 0
+            need_O = True
+            idx = 0
+
+        else:
+            need_O = False
+            alpha_array_tested=alpha_array
         
-        for alpha in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
+        for alpha_i in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
             
             print("N, D:", self.hamiltonian._N, self.hamiltonian._dim)
             print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
-
-            a_tensor = torch.tensor(alpha, dtype=torch.float64)
-            idx = np.where(alpha_array == alpha)[0].item()
-            self.sampler.rng = np.random.default_rng(self._seed+idx * 17) # use different seed for each alpha to get different samples
             
+            # create tensor for current alpha and retrieve alpha value
+            if alpha_0 is None:
+                alpha = alpha_i
+                idx = np.where(alpha_array == alpha_i)[0].item()
+                a_tensor = torch.tensor(float(alpha), dtype=torch.float64)
+                a_val = float(alpha)
+            else:
+                idx += 10
+                a_tensor = alpha.detach().clone()
+                a_val = alpha.detach().item()
 
+            # use different seed for each alpha to get different samples
+            self.sampler.rng = np.random.default_rng(self._seed + idx * 17) 
+            
             # update wavefunction alpha
             self.wf.alpha = a_tensor
             self.wf.wf.alpha = a_tensor
 
             # update sampler scale
             if self.mcmc_alg == "metropolis" or self.mcmc_alg == "langevin":
-                self.sampler.scale = self._scale * np.sqrt(1.0 / alpha)
+                self.sampler.scale = self._scale * np.sqrt(1.0 / a_val)
 
-            state= self._make_initial_state() # make initial state for sampling
+            # make initial state for sampling
+            state= self._make_initial_state() 
+            
             # call sample function from sampler class
-            E_ana, E_num, _, accept_rate = self.sampler._sample_energy_and_optional_O(
+            E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
                 self.wf, state,
-                MC_training_cycles, seed=self._seed, # use different seed for each alpha to get different samples, but deterministic across runs
+                MC_training_cycles, seed=self._seed, 
                 burn_in=burn_in,
-                need_O=False,
+                need_O=need_O,
                 num=num,
             )
-
-            # compute mean energies (same as before)
+            # compute mean energies
             mean_ana_energy = E_ana.mean().item()
             mean_num_energy = E_num.mean().item() if num else mean_ana_energy
 
             # store results
             self.mean_num_energies.append(mean_num_energy)
             self.mean_ana_energies.append(mean_ana_energy)
+            self.alpha_array_tested.append(a_val)
 
             print(
                 f"alpha={alpha:.3f} accept_rate={accept_rate:.3f} "
                 f"mean_E_ana={mean_ana_energy:.6f}, scale={self.sampler.scale:.4f}")
+            
+            # if gd is activated compute next alpha
+            if alpha_0 is not None:
+                # Compute the gradient dE/d alpha and the mean analytical energy
+                dE_dalpha, _ = self.hamiltonian.compute_gradient(O, E_ana)
+                
+                # Update alpha using the optimizer either with gradient descent or Adam 
+                alpha = self._optimizer.step(alpha, dE_dalpha)
+
+                # Store global stats for plotting
+                iteration+=1
+
+                if best_energy - mean_ana_energy > tol:
+                    best_energy = mean_ana_energy
+                    no_improve_count = 0
+                else:
+                    no_improve_count += 1
+
+                if no_improve_count >= patience:
+                    print(f"Stopping early at iteration {iteration} (energy plateau)")
+                    break
 
         # pick best alpha
         best_idx = np.argmin(self.mean_ana_energies)
-        a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64)
+        a_tensor = torch.tensor(self.alpha_array_tested[best_idx], dtype=torch.float64)
 
         self.wf.alpha = a_tensor
         self.wf.wf.alpha = a_tensor
@@ -203,11 +253,10 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-
+    """
     def train_steepest_descent(self, MC_training_cycles, num_iterations, burn_in=0, alpha_0=1.0):
-        """
-        Train using steepest descent for alpha.
-        """
+        
+        # Train using steepest descent for alpha.
         self._is_initialized()
         self._training_cycles = MC_training_cycles
         
@@ -215,18 +264,13 @@ class QS:
         self.mean_ana_energies = []
         self.alpha_array = []
 
-        alpha = torch.tensor(alpha_0, dtype=torch.float64)
 
-        tol = 1e-4      #tolerance for early stopping based on energy improvement
-        patience = 5    #number of iterations to wait for improvement before stopping
-        no_improve_count = 0 
-        best_energy = float("inf")
         for alpha_j in range(num_iterations):
 
             self.wf.alpha = alpha
             self.wf.wf.alpha = alpha
             
-            a_val = alpha.detach().item()
+            a_val = float(alpha) 
         
             state = self._make_initial_state()
 
@@ -270,8 +314,8 @@ class QS:
     
         self._is_trained_ = True
         if self.logger is not None:
-            self.logger.info("Training done")
-
+            self.logger.info("Training done") 
+    """
 
     def sample(self, nsamples, nchains=1, seed=None):
         """helper for the sample method from the Sampler class"""
@@ -283,7 +327,7 @@ class QS:
         # Pass burn_in to sampler if set
         if hasattr(self, 'burn_in'):
             self.sampler.burn_in = self.burn_in
-            
+
         self.sampler.scale = self._scale * np.sqrt(1.0 / self.wf.alpha.item())
         # call the sample method from the sampler class
         self._results = self.sampler._sample(
