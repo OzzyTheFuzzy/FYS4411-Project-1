@@ -35,7 +35,7 @@ def find_energy_vmc(dim, nparticles, alpha_array, config=config):
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
 
     # choose the hamiltonian
-    system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=1.0)
+    system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=config.omega_ho, omega_z=config.omega_z)
 
     # scale learningrate with # of particles
     eta=config.eta/(np.sqrt(nparticles))
@@ -51,15 +51,18 @@ def find_energy_vmc(dim, nparticles, alpha_array, config=config):
     
     # train the system and find the best alpha (scale adapts per alpha internally)
     
-    if config.eta!=0:
-        alpha_0 = alpha_array[0]
-        system.train_steepest_descent(training_cycles, config.num_iterations, burn_in=config.burn_in, alpha_0= alpha_0)
-    else:
-        system.train(training_cycles, alpha_array, burn_in=config.burn_in)
+  
+    system.train(MC_training_cycles=config.training_cycles, 
+            alpha_array=config.alpha_array, 
+            burn_in=config.burn_in, 
+            num_iterations=config.iterations, 
+            alpha_0=config.alpha_0, 
+            num=config.num)
+
 
     # retrieve results for the best alpha with burn-in
-    system.burn_in = config.burn_in
-    sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.seed)
+    sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
+                        num=config.num)
 
     
     return sample_results, system
@@ -71,7 +74,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     alpha_array = config.alpha_array
     dimensions = config.dimensions
     nparticles_array = config.nparticles_array
-    omega = config.omega
+    omega = config.omega_ho
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
     energies_exact = np.zeros((len(dimensions), len(nparticles_array))) # array to store the exact energies

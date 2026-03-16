@@ -1,25 +1,40 @@
 # Configuration for VMC_vs_exact.py
 import numpy as np
 
-output_filename = "../../data/vmc_vs_exact_test.txt"
 
-nsamples = int(2**15)   # samples for the final calculation of the energy after training
+name_of_file = "../../data/vmc_vs_exact_all_configs_test.txt"
+
+""" System parameters """
+nparticles_array = np.array([1,2]) #np.array([1, 10, 50, 100, 500])
+dimensions = np.array([1,3])
+wf_type = "vmc"
+beta = 1               # for elliptical trap set beta != 1, for spherical set beta = 1
+omega_ho = 1.0
+omega_z = 1.0          # for elliptical trap set omega_z = beta, for spherical set omega_z = 1.0
+
+""" Monte Carlo parameters """
+nsamples = int(2**15)  # samples for the final calculation of the energy after training
 nchains = 1
-eta = 0.0               #keep this 0 because we do not use optimizer
-training_cycles = 20_000 # number of training cycles for each alpha 
-mcmc_alg = "metropolis" # metropolis or langevin 
+training_cycles = 10000
+mcmc_alg = "metropolis" # metropolis or langevin
 backend = "torch"
-optimizer = "gd"
 batch_size = 200
 detailed = True
-wf_type = "vmc"
 seed = 42
-burn_in = 2 * training_cycles // 10 # number of burn-in samples to discard 10-20% is usually good
-scale = 0.4 # scale for the MCMC proposal distribution (will be tuned with alpha during training)
+final_sampling_seed = 999
+burn_in = 2 * training_cycles // 10  # 10-20% is usually good
+scale = 0.4            # scale for the MCMC proposal distribution
+num = False
 
-# Arrays for VMC_vs_exact.py
+""" Gradient descent parameters """
+optimizer = "gd"
+eta = 0.0              # keep this 0 because we do not use optimizer
 alpha_array = np.linspace(0.1, 0.9, 11)
-dimensions = np.array([1, 2])
-nparticles_array = np.array([1])
-omega = 1.0
-a=0.0    # Jastrow factor strength, set to 0 for no interactions
+alpha_0 = None         # starting alpha (set to None for no optimizer)
+iterations = 30
+
+""" Interaction parameter """
+a = 0.0                # Jastrow factor strength, set to 0 for no interactions
+
+""" Output """
+write_to_file = False

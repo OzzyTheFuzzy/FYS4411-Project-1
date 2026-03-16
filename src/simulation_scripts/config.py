@@ -34,4 +34,4 @@ alpha_0     = None    # starting alpha ( set to None for no optimizer) ()
 eta         = 0.001   # learning rate for alpha updates (0.01 is good choice)
 
 """ Inteaction parameter"""
-a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
+a = 0.0    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
