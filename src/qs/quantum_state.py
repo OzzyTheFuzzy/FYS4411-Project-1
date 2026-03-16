@@ -253,71 +253,8 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-    """
-    def train_steepest_descent(self, MC_training_cycles, num_iterations, burn_in=0, alpha_0=1.0):
-        
-        # Train using steepest descent for alpha.
-        self._is_initialized()
-        self._training_cycles = MC_training_cycles
-        
-        self.mean_num_energies = []
-        self.mean_ana_energies = []
-        self.alpha_array = []
-
-
-        for alpha_j in range(num_iterations):
-
-            self.wf.alpha = alpha
-            self.wf.wf.alpha = alpha
-            
-            a_val = float(alpha) 
-        
-            state = self._make_initial_state()
-
-            E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
-                self.wf, state,
-                MC_training_cycles, seed=self._seed+alpha_j*17,
-                burn_in=burn_in,
-                need_O=True,
-                )
-            
-            # Compute the gradient dE/d alpha and the mean analytical energy
-            dE_dalpha, mean_ana_energy, = self.hamiltonian.compute_gradient(O, E_ana)
-            
-            # Update alpha using the optimizer either with gradient descent or Adam 
-            alpha = self._optimizer.step(alpha, dE_dalpha, self._optimizer)
-
-            # Store global stats for plotting
-            self.alpha_array.append(a_val)
-            self.mean_ana_energies.append(mean_ana_energy.item())
-
-            print(f"iteration={alpha_j} accept_rate={accept_rate:.4f} mean_E_ana={mean_ana_energy.item():.6f}, alpha={a_val:.7f}")
-
-            current_energy = mean_ana_energy.item()
-
-            if best_energy - current_energy > tol:
-                best_energy = current_energy
-                no_improve_count = 0
-            else:
-                no_improve_count += 1
-
-            if no_improve_count >= patience:
-                print(f"Stopping early at iteration {alpha_j} (energy plateau)")
-                break
-            
-        # finding the best alpha after training and updating the wave function with it
-        best_idx = np.argmin(self.mean_ana_energies)
-        a_tensor = torch.tensor(self.alpha_array[best_idx], dtype=torch.float64) # convert alpha to tensor for use in wave function
-
-        self.wf.alpha = a_tensor    # update to the best variational parameter in the wave function 
-        self.wf.wf.alpha = a_tensor # update WaveFunction.alpha to the best variational parameter
+    def sample(self, nsamples, nchains=1, seed=None, num=False, write_to_file=False):
     
-        self._is_trained_ = True
-        if self.logger is not None:
-            self.logger.info("Training done") 
-    """
-
-    def sample(self, nsamples, nchains=1, seed=None):
         """helper for the sample method from the Sampler class"""
             # DEBUG
 
@@ -338,6 +275,8 @@ class QS:
         seed=seed,
         chain_id=0,
         burn_in=self.burn_in if self.burn_in is not None else int(nsamples * 0.2),
+        num=num,
+        write_to_file=write_to_file,
     )
         return self._results
     

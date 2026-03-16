@@ -63,7 +63,7 @@ class Sampler:
         
         return E_ana, E_num, O, accept_rate
 
-    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False):
+    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False):
         """
         Function for final sampling 
         """
@@ -101,6 +101,11 @@ class Sampler:
             "alpha": wf.alpha.item(), # get the alpha value from the wave function
             "accept rate": accept_rate,
         }
+        if write_to_file:
+            np.savetxt(
+                f"Analytical_energy_with_{nsamples}.txt",
+                E_ana.detach().cpu().numpy()
+            )
     
         return sample_results
 

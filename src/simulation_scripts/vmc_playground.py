@@ -50,9 +50,11 @@ system.train(MC_training_cycles=config.training_cycles,
             alpha_0=config.alpha_0, 
             num=config.num)
 
-# make initial state for final sampling 
+# make initial state for final sampling and run final sampling
 system._make_initial_state() 
-results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed)
+results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
+                        num=config.num, write_to_file=True)
+
 print(system._scale)
 print(results)
 
