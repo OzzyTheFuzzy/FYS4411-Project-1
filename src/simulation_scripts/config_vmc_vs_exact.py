@@ -2,20 +2,20 @@
 import numpy as np
 
 
-name_of_file = "../../data/vmc_vs_exact_all_configs_test.txt"
+name_of_file = "../../data/vmc_vs_exact_all_configs.txt"
 
 """ System parameters """
-nparticles_array = np.array([1,2]) #np.array([1, 10, 50, 100, 500])
-dimensions = np.array([1,3])
+nparticles_array = np.array([1, 10, 100, 500])
+dimensions = np.array([1, 2, 3])
 wf_type = "vmc"
 beta = 1               # for elliptical trap set beta != 1, for spherical set beta = 1
 omega_ho = 1.0
 omega_z = 1.0          # for elliptical trap set omega_z = beta, for spherical set omega_z = 1.0
 
 """ Monte Carlo parameters """
-nsamples = int(2**15)  # samples for the final calculation of the energy after training
+nsamples = int(2**20)  # samples for the final calculation of the energy after training
 nchains = 1
-training_cycles = 10000
+training_cycles = 100000
 mcmc_alg = "metropolis" # metropolis or langevin
 backend = "torch"
 batch_size = 200
