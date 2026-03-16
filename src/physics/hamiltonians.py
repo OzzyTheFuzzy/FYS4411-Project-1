@@ -224,21 +224,16 @@ class HarmonicOscillator(Hamiltonian):
         
     def laplacien_log_jastrow(self, rij, a):
         """
-        calculates the jastrow factor for a given configuration of particles r
-        r: shape (N, dim)
+        calculates the laplacian of the jastrow term for a given configuration of particles r
+        rij: shape (N, dim)
         
         """
+
         bk = self.backend
-        # hard-core condition 
         if bk.any(rij <= a):
             return -bk.inf
-        
-        #calculate laplacien in two steps
-        term_1 = 2.0 * bk.sum(2.0 * a / (rij * (rij - a)))
-        term_2 = 2.0 * bk.sum(a**2 / (rij**2 * (rij - a)**2))
 
-        laplacien_log_jastrow = term_1 - term_2
-
+        laplacien_log_jastrow = -2.0 * bk.sum(a**2 / (rij**2 * (rij - a)**2))
    
         return laplacien_log_jastrow
 

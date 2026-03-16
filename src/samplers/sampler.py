@@ -1,4 +1,8 @@
 import copy
+from pathlib import Path
+
+data_dir = Path(__file__).resolve().parents[1] / "data"
+
 
 import jax
 import numpy as np
@@ -63,7 +67,7 @@ class Sampler:
         
         return E_ana, E_num, O, accept_rate
 
-    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False):
+    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy"):
         """
         Function for final sampling 
         """
@@ -100,12 +104,9 @@ class Sampler:
             "MC cycles": nsamples,
             "alpha": wf.alpha.item(), # get the alpha value from the wave function
             "accept rate": accept_rate,
-        }
+            }
         if write_to_file:
-            np.savetxt(
-                f"Analytical_energy_with_{nsamples}.txt",
-                E_ana.detach().cpu().numpy()
-            )
+            np.savetxt( data_dir / f"{name_of_file}.txt",E_ana.detach().cpu().numpy())
     
         return sample_results
 

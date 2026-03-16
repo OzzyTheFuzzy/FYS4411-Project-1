@@ -3,6 +3,13 @@ import matplotlib.pyplot as plt
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 import jax
 import numpy as np
+#steepest_descent
+import sys
+import time
+
+from pathlib import Path
+import matplotlib.pyplot as plt
+
 
 from qs import quantum_state
 import config
@@ -53,11 +60,10 @@ system.train(MC_training_cycles=config.training_cycles,
 # make initial state for final sampling and run final sampling
 system._make_initial_state() 
 results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
-                        num=config.num, write_to_file=True)
+                        num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
 
 print(system._scale)
 print(results)
-
 
 # display the results
 energies = np.array(system.mean_ana_energies)  # the mean ana energies for each alpha tested
