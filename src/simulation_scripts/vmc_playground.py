@@ -57,9 +57,19 @@ system.train(MC_training_cycles=config.training_cycles,
             alpha_0=config.alpha_0, 
             num=config.num)
 
+
 # make initial state for final sampling and run final sampling
-system._make_initial_state() 
-results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
+system._make_initial_state()
+if config.num:
+    print (system.t_ana_tot_list, system.t_num_tot_list)
+    t_ana_tot_final=0
+    t_num_tot_final=0
+    results, t_ana_tot_final, t_num_tot_final = system.sample(config.nsamples, nchains=config.nchains, need_O=config.need_O, seed=config.final_sampling_seed, 
+                        num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
+
+
+
+results = system.sample(config.nsamples, nchains=config.nchains, need_O=config.need_O, seed=config.final_sampling_seed, 
                         num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
 
 print(system._scale)

@@ -39,6 +39,8 @@ class Sampler:
 
         E_ana_list = []
         E_num_list = [] if num else None
+        t_ana_tot = 0
+        t_num_tot = 0
         O_list = [] if need_O else None
 
         for i in range(MC_training_cycles):
@@ -48,7 +50,12 @@ class Sampler:
                 continue
 
             if num:
-                E_num, E_ana = self.hamiltonian.local_energy(wf, state.positions, num=True)
+                E_ana, t_ana, V = self.hamiltonian.local_energy(wf, state.positions, num=True)
+                t_ana_tot+=t_ana
+
+                E_num, t_num = self.hamiltonian.numerical_energy(wf, state.positions, V)
+                t_num_tot+=t_num
+
                 E_num_list.append(E_num.detach())
                 E_ana_list.append(E_ana.detach())
             else:
@@ -65,6 +72,9 @@ class Sampler:
 
         accept_rate = state.n_accepted / MC_training_cycles
         
+        if num:
+            return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
+        
         return E_ana, E_num, O, accept_rate
 
     def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy"):
@@ -76,16 +86,23 @@ class Sampler:
         
         # Use different seed for final alpha
 
-        E_ana, E_num, _, accept_rate = self._sample_energy_and_optional_O(
-            wf=wf,
-            state=state,
-            MC_training_cycles=nsamples,
-            seed=seed,
+        if num:
+            E_ana, E_num, _, accept_rate, t_ana_tot, t_num_tot = self.sampler._sample_energy_and_optional_O(
+            wf=wf, state=state,
+            MC_training_cycles=nsamples, 
+            seed=seed, 
+            burn_in=burn_in,
+            num=num, )
+
+        else:
+            E_ana, E_num, _, accept_rate= self.sampler._sample_energy_and_optional_O(
+            wf=wf, state=state,
+            MC_training_cycles=nsamples, 
+            seed=seed, 
             burn_in=burn_in,
             need_O=False,
-            num=num,
-        )
-        
+            num=num, )
+
         n_effective = nsamples - burn_in
         
         # compute mean energies 
@@ -107,7 +124,10 @@ class Sampler:
             }
         if write_to_file:
             np.savetxt( data_dir / f"{name_of_file}.txt",E_ana.detach().cpu().numpy())
-    
+            
+        if num:
+            return sample_results, t_ana_tot, t_num_tot
+        
         return sample_results
 
     def set_hamiltonian(self, hamiltonian):

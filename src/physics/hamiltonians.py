@@ -57,34 +57,46 @@ class HarmonicOscillator(Hamiltonian):
 
     def local_energy(self, vmc, r, num=False):
         """Local energy of the system
-        Returns either numerical or analytical local energy
+        Returns analytical local energy
+        vmc: vmc object from class VMC
+        r: positions
         """
 
         V = self.potential_energy(r)
 
         if num: # for timing the numerical and analytical kinetic energy calculations
-            start = time.perf_counter()
-            K_num = self.kinetic_energy_numerical(vmc, r)
-            end = time.perf_counter()
-            t_num = end - start
-            E_L_num = K_num + V
-
+            
             start = time.perf_counter()
             K_ana = self.kinetic_energy_analytical(vmc, r)
+
             if vmc.a > 0.0:
                 K_ana += self.kinetic_energy_jastrow(vmc, r)
             end = time.perf_counter()
+        
             t_ana = end - start
+
             E_L_ana = K_ana + V
 
-            return E_L_num, E_L_ana, t_num, t_ana
+            return  E_L_ana, t_ana, V
 
         K_ana = self.kinetic_energy_analytical(vmc, r)
         if vmc.a != 0.0:
             K_ana += self.kinetic_energy_jastrow(vmc, r)
     
         return K_ana + V
-        
+    
+    def numerical_energy(self, vmc, r, V):
+        """
+        Returns energy with the numerical derivation
+        """
+        start = time.perf_counter()
+        K_num = self.kinetic_energy_numerical(vmc, r)
+        end = time.perf_counter()
+        t_num = end - start
+        E_L_num = K_num + V
+
+        return E_L_num, t_num
+    
     def compute_gradient(self, O, E_L):
         """
         Finding gradient with respect to alpha using the formula: dE/dalpha = 2 * ( <E_L O> - <E_L><O> )

@@ -153,6 +153,10 @@ class QS:
         self.mean_ana_energies = []
         self.alpha_array_tested =[]
 
+        if num:
+            self.t_ana_tot_list = []
+            self.t_num_tot_list = []
+
         if alpha_0 is not None:
             alpha = torch.tensor(alpha_0, dtype=torch.float64)
             alpha_array_tested = []
@@ -201,13 +205,25 @@ class QS:
             state= self._make_initial_state() 
             
             # call sample function from sampler class
-            E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
+            if num:
+                E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot = self.sampler._sample_energy_and_optional_O(
                 self.wf, state,
                 MC_training_cycles, seed=self._seed, 
                 burn_in=burn_in,
                 need_O=need_O,
-                num=num,
-            )
+                num=num, )
+
+                self.t_ana_tot_list.append(t_ana_tot)
+                self.t_num_tot_list.append(t_num_tot)
+
+            else:
+                E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
+                    self.wf, state,
+                    MC_training_cycles, seed=self._seed, 
+                    burn_in=burn_in,
+                    need_O=need_O,
+                    num=num,
+                )
             # compute mean energies
             mean_ana_energy = E_ana.mean().item()
             mean_num_energy = E_num.mean().item() if num else mean_ana_energy
