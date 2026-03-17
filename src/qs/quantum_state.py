@@ -269,7 +269,7 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-    def sample(self, nsamples, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy"):
+    def sample(self, nsamples,burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy"):
     
         """helper for the sample method from the Sampler class"""
             # DEBUG

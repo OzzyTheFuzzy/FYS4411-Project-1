@@ -1,3 +1,5 @@
+#config_langevin_results
+
 # Config
 import numpy as np
 
@@ -9,13 +11,13 @@ beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 100000  # this is cycles for the ansatz
-mcmc_alg        = "metropolis" # "metropolis" or "langevin"
-scale           = 0.2         # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
+training_cycles = 100_000  # this is cycles for the ansatz
+mcmc_alg        = "langevin" # "metropolis" or "langevin"
+scale           = 0.2        # scale goes as dt. Try these steps [0.001, 0.01, 0.1, 0.5, 1.0, 2.0] 
 backend         = "torch"
 batch_size      = 200
 detailed        = True
-num             = True      # Set num=True to calculate the second derivatives with numerical derivation
+num             = False      # Set num=True to calculate the second derivatives with numerical derivation
 nsamples        = int(10000)  # 2**18 = 262144
 seed            = 142
 final_burn_in   = int(nsamples//10 * 2)

@@ -1,13 +1,13 @@
 import sys
 import matplotlib.pyplot as plt
+from pathlib import Path
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
+data_dir = Path(__file__).resolve().parents[2] / "data"
+import os
 import jax
 import numpy as np
-#steepest_descent
 import sys
 import time
-
-from pathlib import Path
 import matplotlib.pyplot as plt
 
 
@@ -34,7 +34,6 @@ system.set_wf(
     config.nparticles,
     config.dim,
     config.a,
-    config.beta
 )
 
 # choose the sampler algorithm and scale
@@ -61,18 +60,22 @@ system.train(MC_training_cycles=config.training_cycles,
 # make initial state for final sampling and run final sampling
 system._make_initial_state()
 if config.num:
-    print (system.t_ana_tot_list, system.t_num_tot_list)
     t_ana_tot_final=0
     t_num_tot_final=0
-    results, t_ana_tot_final, t_num_tot_final = system.sample(config.nsamples, nchains=config.nchains, need_O=config.need_O, seed=config.final_sampling_seed, 
+    results, t_ana_tot_final, t_num_tot_final = system.sample(config.nsamples,config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
+                        num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
+    
+    # store computation times to file
+    times = np.column_stack( (system.t_ana_tot_list, system.t_num_tot_list) )
+    filepath = data_dir / config.name_of_time_file
+    os.makedirs(filepath.parent, exist_ok=True)
+    np.savetxt(filepath, times, header=f"analytical times, numerical times for N={config.nparticles} and d={config.dim}", fmt="%.15f  %.15f")
+
+else:
+    system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
                         num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
 
 
-
-results = system.sample(config.nsamples, nchains=config.nchains, need_O=config.need_O, seed=config.final_sampling_seed, 
-                        num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
-
-print(system._scale)
 print(results)
 
 # display the results

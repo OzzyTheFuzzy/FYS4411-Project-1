@@ -1,8 +1,11 @@
 import copy
 from pathlib import Path
+import sys
+import os
+import time
 
-data_dir = Path(__file__).resolve().parents[1] / "data"
-
+data_dir = Path(__file__).resolve().parents[2] / "data"
+sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 
 import jax
 import numpy as np
@@ -81,13 +84,11 @@ class Sampler:
         """
         Function for final sampling 
         """
-
-        burn_in = nsamples * 0.2 if burn_in is None else burn_in
         
         # Use different seed for final alpha
 
         if num:
-            E_ana, E_num, _, accept_rate, t_ana_tot, t_num_tot = self.sampler._sample_energy_and_optional_O(
+            E_ana, E_num, _, accept_rate, t_ana_tot, t_num_tot = self._sample_energy_and_optional_O(
             wf=wf, state=state,
             MC_training_cycles=nsamples, 
             seed=seed, 
@@ -95,12 +96,11 @@ class Sampler:
             num=num, )
 
         else:
-            E_ana, E_num, _, accept_rate= self.sampler._sample_energy_and_optional_O(
+            E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
             wf=wf, state=state,
             MC_training_cycles=nsamples, 
             seed=seed, 
             burn_in=burn_in,
-            need_O=False,
             num=num, )
 
         n_effective = nsamples - burn_in
@@ -122,8 +122,15 @@ class Sampler:
             "alpha": wf.alpha.item(), # get the alpha value from the wave function
             "accept rate": accept_rate,
             }
+        
         if write_to_file:
-            np.savetxt( data_dir / f"{name_of_file}.txt",E_ana.detach().cpu().numpy())
+            out = np.column_stack( ( E_ana.detach().cpu().numpy().flatten(),
+            E_num.detach().cpu().numpy().flatten() if num else E_ana.detach().cpu().numpy().flatten()) )
+
+            filepath = data_dir / name_of_file
+            os.makedirs(filepath.parent, exist_ok=True)
+            np.savetxt(filepath, out, header="E_ana E_num", fmt="%.12f  %.12f")
+            
             
         if num:
             return sample_results, t_ana_tot, t_num_tot
