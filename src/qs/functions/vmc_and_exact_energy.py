@@ -14,7 +14,7 @@ from simulation_scripts import config_vmc_vs_exact as config
 
 
 
-def find_energy_vmc(dim, nparticles, alpha_array, config=config):
+def find_energy_vmc(dim, nparticles, config=config, scale=config.scale):
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
     system = quantum_state.QS(
         backend=config.backend,
@@ -32,7 +32,7 @@ def find_energy_vmc(dim, nparticles, alpha_array, config=config):
     )
 
     # choose the sampler algorithm and scale
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale)
 
     # choose the hamiltonian
     system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=config.omega_ho, omega_z=config.omega_z)
@@ -88,7 +88,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
         for n in range(len(nparticles_array)):
 
             print(f"Calculating energy and std for d={dimensions[d]}, n={nparticles_array[n]}")
-            sample_results, system = find_energy_vmc(dimensions[d], nparticles_array[n], alpha_array) 
+            sample_results, system = find_energy_vmc(dimensions[d], nparticles_array[n], config=config) 
 
             # extract the relevant results from the sample_results dictionary
             alpha = sample_results["alpha"]

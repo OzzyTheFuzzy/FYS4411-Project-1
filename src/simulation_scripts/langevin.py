@@ -1,4 +1,4 @@
-#testing langevin for different timesteps
+#testing langevin for different timesteps and plotting the results
 
 import sys
 import time
@@ -12,12 +12,22 @@ from qs.functions import vmc_and_exact_energy as vmc_and_exact_energy
 from simulation_scripts import config_langevin as config_langevin
 
 dim=config_langevin.dim; nparticles=config_langevin.nparticles; alpha_array = config_langevin.alpha_array
-for dt in range(config.dt)
-results, system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, alpha_array, config_langevin)
+mean_energies = []
+accept_array = []
 
-plt.scatter(system.alpha_array, system.mean_ana_energies)
-plt.xlabel("alpha")
+#loop over dt values
+for dt in config_langevin.dt_array:
+
+    results, system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config_langevin, scale=dt)
+    mean_energies.append(results["energy_analytical"])
+    accept_array.append(results["accept rate"])
+
+for dt, acc in zip(config_langevin.dt_array, accept_array):
+    print(f"dt = {dt:.3f} → acceptance = {acc:.4f}")
+
+plt.scatter(config_langevin.dt_array, mean_energies, label="Energy")
+plt.xlabel("dt")
 plt.ylabel("Energy")
-plt.title(f"E(alpha) for {config_steep.num_iterations} alphas")
+plt.title(f"E(dt)")
 #plt.grid("True")
 plt.show()
