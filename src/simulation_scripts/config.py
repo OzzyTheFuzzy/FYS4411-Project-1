@@ -2,16 +2,16 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 10
+nparticles = 100
 dim        = 1
 wf_type    = "vmc" 
 beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 5000  # this is cycles for the ansatz 500,000 for 
-mcmc_alg        = "langevin" # "metropolis" or "langevin"
-scale           = 0.5        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
+training_cycles = 100       # this is cycles for training
+mcmc_alg        = "metropolis" # "metropolis" or "langevin"
+scale           = 0.2        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
@@ -22,11 +22,13 @@ final_burn_in   = int(nsamples//10)*2
 
 final_sampling_seed = 999
 burn_in             = int(training_cycles//10 * 2) # number of initial samples to discard as burn-in when training 10-20%
-alpha_array         = np.linspace(0.1, 0.8, 6)#np.linspace(0.1, 0.9, 21) # array of alpha values to train on
+alpha_array         = np.linspace(0.1, 0.9, 21) # array of alpha values to train on
 nchains             = 1 # number of Markov chains
 write_to_file       = True    # True if you want to write energies to file
+write_to_file_training= True    # True if you want to write energies vs alpha during training to file
 name_of_file        = f"testing{nparticles}_d{dim}"  #  name of txt file for energies of last sample
-filename            = 'energy_vs_alpha.txt' # name of txt file for energies vs alpha during training
+filename            = 'energy_vs_alpha_m.txt' # name of txt file for energies vs alpha during training
+
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer
 iterations  = 30      # different alphas tested
