@@ -1,34 +1,34 @@
-#config_langevin_results
+#config_ana_vs_num_times.py
 
 # Config
 import numpy as np
 
 """ System parameters"""
-nparticles = 100 
+nparticles = 100
 dim        = 1
 wf_type    = "vmc" 
 beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 100_000  # this is cycles for the ansatz
-mcmc_alg        = "langevin" # "metropolis" or "langevin"
-scale           = 0.2        # scale goes as dt. Try these steps [0.001, 0.01, 0.1, 0.5, 1.0, 2.0] 
+training_cycles = 1000  # this is cycles for the ansatz
+mcmc_alg        = "metropolis" # "metropolis" or "langevin"
+scale           = 0.2         # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
-num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(10000)  # 2**18 = 262144
+num             = True      # Set num=True to calculate the second derivatives with numerical derivation
+nsamples        = int(100000)  # 2**18 = 262144
 seed            = 142
-final_burn_in   = int(nsamples//10 * 2)
+final_burn_in   = int(nsamples//10)*2
 
 final_sampling_seed = 999
 burn_in             = int(training_cycles//10 * 2) # number of initial samples to discard as burn-in when training 10-20%
 alpha_array         = np.array([0.5]) # array of alpha values to train on
 nchains             = 1 # number of Markov chains
 write_to_file       = True    # True if you want to write energies to file
-name_of_file        = f"langevin_energies{nparticles}_d{dim}"  #  name of txt file for energies
-name_of_time_file   = f"langevin_times{nparticles}_d{dim}"     # name of time file
+name_of_file        = f"num_vs_analytical_energies_N{nparticles}_d{dim}"  #  name of txt file for energies
+name_of_time_file   = f"num_vs_analytical_time_N{nparticles}_d{dim}"     # name of time file
 
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer

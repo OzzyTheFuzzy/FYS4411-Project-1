@@ -80,7 +80,7 @@ class QS:
 
         self._is_initialized_ = True
 
-    def set_hamiltonian(self, type_, int_type, omega_ho, omega_z=None):
+    def set_hamiltonian(self, type_, int_type, omega_ho=1.0, omega_z=None):
         """
         Set the hamiltonian to be used for sampling.
         For now we only support the Harmonic Oscillator.
@@ -114,7 +114,7 @@ class QS:
         self.mcmc_alg = mcmc_alg
         self._scale = scale
 
-        # Create sampler instance (only Metropolis supported for now)
+        # Create sampler instance 
         if mcmc_alg == "metropolis":
             self.sampler = Metro(rng=self.rng, scale=scale, logger=self.logger)
         elif mcmc_alg == "langevin":
@@ -152,7 +152,7 @@ class QS:
         self.mean_num_energies = []
         self.mean_ana_energies = []
         self.alpha_array_tested =[]
-
+        self.accept_rate_array = []
         if alpha_0 is not None:
             alpha = torch.tensor(alpha_0, dtype=torch.float64)
             alpha_array_tested = []
@@ -225,6 +225,7 @@ class QS:
             self.mean_num_energies.append(mean_num_energy)
             self.mean_ana_energies.append(mean_ana_energy)
             self.alpha_array_tested.append(a_val)
+            self.accept_rate_array.append(accept_rate)
 
             print(
                 f"alpha={alpha:.3f} accept_rate={accept_rate:.3f} "

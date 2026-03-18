@@ -35,7 +35,7 @@ def find_energy_vmc(dim, nparticles, config=config, scale=config.scale):
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale)
 
     # choose the hamiltonian
-    system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=config.omega_ho, omega_z=config.omega_z)
+    system.set_hamiltonian(type_="ho", int_type="Coulomb")
 
     # scale learningrate with # of particles
     eta=config.eta/(np.sqrt(nparticles))
@@ -61,7 +61,7 @@ def find_energy_vmc(dim, nparticles, config=config, scale=config.scale):
 
 
     # retrieve results for the best alpha with burn-in
-    sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
+    sample_results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
                         num=config.num)
 
 
@@ -82,6 +82,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     std_errors  = np.zeros_like(energies_vmc)
     variances   = np.zeros_like(energies_vmc)
     scales      = np.zeros_like(energies_vmc)
+    acc_rates   = np.zeros_like(energies_vmc)
     # Loop over dimensions and number of particles, calculate the energies and store them in the arrays
     
     for d in range(len(dimensions)):
@@ -96,12 +97,13 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
             std_error = sample_results["std_error"]
             variance = sample_results["variance"]
             scale = sample_results["scale"]
-            
+            accept_rate = sample_results["accept_rate"]
             # store the best alpha, std error, variance, and scale for the current dimension and number of particles   
             alphas_best[d, n] = alpha
             std_errors[d, n] = std_error
             variances[d, n] = variance
             scales[d, n] = float(scale)
+            acc_rates[d, n] = accept_rate
             print(f'alpha = {alpha}') # print the alpha that gave the lowest energy
 
             energies_vmc[d, n] = energy_analytical #store the vmc energy
@@ -119,7 +121,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     variances_flat       = variances.flatten()
     alphas_best_flat     = alphas_best.flatten()
     scales_flat          = scales.flatten()
-
+    acc_rates_flat       = acc_rates.flatten()
     energies_exact_flat  = energies_exact.flatten()
     diff_flat            = (energies_vmc - energies_exact).flatten()
 
@@ -133,6 +135,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
         scales_flat,
         energies_exact_flat,
         diff_flat,
+        acc_rates_flat,
     ))
 
     # Ensure output directory exists
@@ -141,8 +144,8 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     np.savetxt(
         name_of_file,
         out,
-        header="dimension n_particles E_vmc std_error variance alpha scale E_exact E_diff",
-        fmt="%d %d %.12f %.12e %.12e %.12f %.12f %.12f %.12e",
+        header="dimension n_particles E_vmc std_error variance alpha scale E_exact E_diff accept_rate",
+        fmt="%d %d %.12f %.12e %.12e %.12f %.12f %.12f %.12e %.8f",
     )
     return 0
 
