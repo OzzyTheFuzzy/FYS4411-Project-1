@@ -153,10 +153,6 @@ class QS:
         self.mean_ana_energies = []
         self.alpha_array_tested =[]
 
-        if num:
-            self.t_ana_tot_list = []
-            self.t_num_tot_list = []
-
         if alpha_0 is not None:
             alpha = torch.tensor(alpha_0, dtype=torch.float64)
             alpha_array_tested = []
@@ -213,9 +209,6 @@ class QS:
                 need_O=need_O,
                 num=num, )
 
-                self.t_ana_tot_list.append(t_ana_tot)
-                self.t_num_tot_list.append(t_num_tot)
-
             else:
                 E_ana, E_num, O, accept_rate = self.sampler._sample_energy_and_optional_O(
                     self.wf, state,
@@ -269,7 +262,7 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-    def sample(self, nsamples,burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy"):
+    def sample(self, nsamples,final_burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy"):
     
         """helper for the sample method from the Sampler class"""
             # DEBUG
@@ -290,7 +283,7 @@ class QS:
         scale=self.sampler.scale,
         seed=seed,
         chain_id=0,
-        burn_in=self.burn_in if self.burn_in is not None else int(nsamples * 0.2),
+        burn_in=final_burn_in,
         num=num,
         write_to_file=write_to_file,
         name_of_file=name_of_file,

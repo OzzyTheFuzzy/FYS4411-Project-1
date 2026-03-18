@@ -64,7 +64,7 @@ def find_energy_vmc(dim, nparticles, alpha_array, config=config):
     sample_results = system.sample(config.nsamples, nchains=config.nchains, seed=config.final_sampling_seed, 
                         num=config.num)
 
-    
+
     return sample_results, system
 
 def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):

@@ -45,7 +45,6 @@ class Sampler:
         t_ana_tot = 0
         t_num_tot = 0
         O_list = [] if need_O else None
-
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
             
