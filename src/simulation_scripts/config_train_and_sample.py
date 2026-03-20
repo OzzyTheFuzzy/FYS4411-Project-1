@@ -1,3 +1,4 @@
+#config_train_and_sample.py
 # Config
 import numpy as np
 
@@ -25,14 +26,9 @@ burn_in             = int(training_cycles//10 * 2) # number of initial samples t
 alpha_array         = np.linspace(0.1, 0.9, 21) # array of alpha values to train on
 nchains             = 1 # number of Markov chains
 write_to_file       = True    # True if you want to write energies to file
-write_to_file_training= False    # True if you want to write energies vs alpha during training to file
-name_of_file        = f"noname{nparticles}_d{dim}"  #  name of txt file for energies of last sample
-filename            = f'test_r_centers_rho_E_without_interactions_N{nparticles}_d{dim}.txt' # name of txt file for energies vs alpha during training
-
-"""For one body density"""
-obd = True # set True to compute one body density, set False to not compute it
-n_bins = 80 # number of bins for one body density
-r_max = None # maximum radius for one body density
+write_to_file_training= True    # True if you want to write energies vs alpha during training to file
+name_of_file        = f"testing{nparticles}_d{dim}"  #  name of txt file for energies of last sample
+filename            = f'energy_vs_alpha_{mcmc_alg}.txt' # name of txt file for energies vs alpha during training
 
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer

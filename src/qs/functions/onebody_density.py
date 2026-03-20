@@ -53,3 +53,16 @@ def compute_onebody_density(counts_accumulated, shell_volumes, N, nsamples):
     rho = counts_accumulated / (shell_volumes * N * nsamples)
     return rho
 
+def plot_onebody_density(r_centers, rho, config):
+    """
+    Plot the one-body density.
+    """
+    import matplotlib.pyplot as plt
+
+    plt.figure()
+    plt.plot(r_centers.numpy(), rho.numpy(), marker="o")
+    plt.xlabel("r")
+    plt.ylabel("rho(r)")
+    plt.title(f"One-body density for {config.mcmc_alg} algorithm, N={config.nparticles}, dim={config.dim}")
+    plt.grid(True)
+    plt.show()

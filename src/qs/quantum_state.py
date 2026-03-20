@@ -60,6 +60,10 @@ class QS:
         self.sampler = None
         self.burn_in = None
         self.a = 0.0        # Jastrow factor strength, set to 0 for no Jastrow factor
+        self.obd = False      # whether to compute one-body density during final sampling
+        self.n_bins = 80        # number of bins for one-body density histogram
+        self.r_max = None       # maximum radius for one-body density histogram
+
         if rng is None:
             self.rng = default_rng(self._seed)
         else:
@@ -109,10 +113,13 @@ class QS:
 
             return State(positions=positions, logp=logp, n_accepted=0, delta=0)
 
-    def set_sampler(self, mcmc_alg, scale=0.1):
+    def set_sampler(self, mcmc_alg, scale=0.1, obd=False, n_bins=80, r_max=None):
 
         self.mcmc_alg = mcmc_alg
         self._scale = scale
+        self.obd = obd
+        self.n_bins = n_bins
+        self.r_max = r_max
 
         # Create sampler instance 
         if mcmc_alg == "metropolis":

@@ -10,6 +10,7 @@ sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-
 import jax
 import numpy as np
 import torch
+from qs.functions.onebody_density import accumulate_onebody_density, compute_onebody_density
 from qs.utils import check_and_set_nchains # we suggest you use this function to check and set the number of chains when you parallelize
 from qs.utils import generate_seed_sequence
 from qs.utils import State
@@ -31,7 +32,7 @@ class Sampler:
 
 
 
-    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles,seed, burn_in=0, need_O = False, num= False):
+    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False):
         """
         Run an MCMC batch at fixed alpha and return:
         - E_ana: tensor of analytic local energies (shape [n_samples])
@@ -45,28 +46,36 @@ class Sampler:
         t_ana_tot = 0
         t_num_tot = 0
         O_list = [] if need_O else None
+        counts = torch.zeros((state.n_bins,), dtype=torch.float64) if state.obd else None
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
-            
+        
             if i < burn_in:
                 continue
 
+            r=state.positions
+
             if num:
-                E_ana, t_ana, V = self.hamiltonian.local_energy(wf, state.positions, num=True)
+                E_ana, t_ana, V = self.hamiltonian.local_energy(wf, r, num=True)
                 t_ana_tot+=t_ana
 
-                E_num, t_num = self.hamiltonian.numerical_energy(wf, state.positions, V)
+                E_num, t_num = self.hamiltonian.numerical_energy(wf, r, V)
                 t_num_tot+=t_num
 
                 E_num_list.append(E_num.detach())
                 E_ana_list.append(E_ana.detach())
             else:
-                E_ana = self.hamiltonian.local_energy(wf, state.positions, num=False)
+                E_ana = self.hamiltonian.local_energy(wf, r, num=False)
                 E_ana_list.append(E_ana.detach())
 
             if need_O:
-                O_val = self.hamiltonian.O_alpha_analytic(wf, state.positions)
+                O_val = self.hamiltonian.O_alpha_analytic(wf, r)
                 O_list.append(O_val.detach())
+
+            if state.obd:
+                r_centers, count, shell_volumes = accumulate_onebody_density(r, state.n_bins, r_max=state.r_max)
+                counts+=count
+
 
         E_ana = torch.stack(E_ana_list)
         E_num = torch.stack(E_num_list) if num else None
@@ -76,6 +85,11 @@ class Sampler:
         
         if num:
             return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
+        
+        if state.obd:
+            rho = compute_onebody_density(counts, shell_volumes, wf.nparticles, MC_training_cycles - burn_in)
+
+            return E_ana, E_num, O, accept_rate, rho, r_centers
         
         return E_ana, E_num, O, accept_rate
 
@@ -95,12 +109,22 @@ class Sampler:
             num=num, )
 
         else:
-            E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
-            wf=wf, state=state,
-            MC_training_cycles=nsamples, 
-            seed=seed, 
-            burn_in=burn_in,
-            num=num, )
+            # to retrieve onebody density
+            if state.obd:
+                E_ana, _, _, accept_rate, rho, r_centers = self._sample_energy_and_optional_O(
+                wf=wf, state=state,
+                MC_training_cycles=nsamples, 
+                seed=seed, 
+                burn_in=burn_in,
+                num=num, )
+
+            else:   
+                E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
+                wf=wf, state=state,
+                MC_training_cycles=nsamples, 
+                seed=seed, 
+                burn_in=burn_in,
+                num=num, )
 
         n_effective = nsamples - burn_in
         
@@ -134,6 +158,10 @@ class Sampler:
         if num:
             return sample_results, t_ana_tot, t_num_tot
         
+        if state.obd:
+            sample_results["r_centers"] = r_centers
+            sample_results["rho"] = rho
+            
         return sample_results
 
     def set_hamiltonian(self, hamiltonian):

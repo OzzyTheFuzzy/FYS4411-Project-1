@@ -1,12 +1,7 @@
-#for testing stuff and finding the best alpha with plot (uses config.py as configuration)
+# For training and writing to file. Also for making plots for E(alpha) vs alpha
 import sys
 import matplotlib.pyplot as plt
 from pathlib import Path
-import jax
-import numpy as np
-import sys
-import torch
-
 #sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
 # Project paths
 project_root = Path(__file__).resolve().parents[2]
@@ -16,18 +11,21 @@ data_dir = project_root / "data"
 sys.path.insert(0, str(src_path))
 sys.path.insert(0, str(src_path / "simulation_scripts"))
 from qs.functions.write_to_file import write_to_file
-from qs.functions.onebody_density import plot_onebody_density
 
+import jax
+import numpy as np
+import sys
+import matplotlib.pyplot as plt
 
 from qs import quantum_state
-import config
+import config_train_and_sample as config
 
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 
 
-def train_and_sample_obd():
+def train_and_sample():
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
     system = quantum_state.QS(
         backend=config.backend,
@@ -44,6 +42,7 @@ def train_and_sample_obd():
         config.a,
     )
 
+    # choose the sampler algorithm and scale
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
 
     # choose the hamiltonian
@@ -66,44 +65,17 @@ def train_and_sample_obd():
 
     # make initial state for final sampling and run final sampling
     system._make_initial_state()
-
-    # define r_max and reset the sampler with the onebody density settings for final sampling
-    r_max  = 3 * torch.sqrt(1 / (2 * system.wf.alpha).item()) if config.r_max is None else config.r_max
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)
-
-    results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
+    if config.num:
+        results, t_ana_tot_final, t_num_tot_final = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
                             num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
-    
-    energies, r_centers, rho = results["energies"], results.get("r_centers"), results.get("rho")
 
-    if config.write_to_file_training:
-        
-        write_to_file(
-            [r_centers, rho, energies],
-            ["r_centers", "rho", "energies"],
-            config.filename,
-            data_dir=data_dir
-        )
-    
+    else:
+        results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
+                            num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
     return system, results
 
-system, results = train_and_sample_obd()
+system, results = train_and_sample()
 
-
-def plot_density(name_of_file=data_dir / config.filename):
-    
-    data      = np.loadtxt(name_of_file, skiprows=1) # load the data from the file, skip the header
-    r_centers = data[:, 0]
-    rho       = data[:, 1]
-    energies  = data[:, 2] # may be needed
-
-    plot_onebody_density(r_centers, rho, config)
-
-plot_density(data_dir/config.filename)
-
-
-
-"""
 # Extract training results
 energies = np.array(system.mean_ana_energies)
 alpha_array = np.array(system.alpha_array_tested)
@@ -140,4 +112,3 @@ def plot(name_of_file=data_dir / config.filename):
 
 plot(data_dir / filename)
 
-"""
