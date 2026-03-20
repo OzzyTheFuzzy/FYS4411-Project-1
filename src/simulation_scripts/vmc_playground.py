@@ -44,7 +44,7 @@ def train_and_sample_obd():
         config.a,
     )
 
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale)
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=False)
 
     # choose the hamiltonian
     system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=config.omega_z)
@@ -64,23 +64,23 @@ def train_and_sample_obd():
                 num=config.num)
 
 
+    # define r_max and reset the sampler with the onebody density settings for final sampling
+    r_max  = torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)
+
     # make initial state for final sampling and run final sampling
     system._make_initial_state()
 
-    # define r_max and reset the sampler with the onebody density settings for final sampling
-    r_max  = 3 * torch.sqrt(1 / (2 * system.wf.alpha).item()) if config.r_max is None else config.r_max
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)
-
     results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
-                            num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
-    
-    energies, r_centers, rho = results["energies"], results.get("r_centers"), results.get("rho")
+                            num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file, obd=config.obd)
+    print(results)
+    r_centers, rho =results.get("r_centers"), results.get("rho")
 
-    if config.write_to_file_training:
+    if config.write_to_file:
         
         write_to_file(
-            [r_centers, rho, energies],
-            ["r_centers", "rho", "energies"],
+            [r_centers, rho],
+            ["r_centers", "rho"],
             config.filename,
             data_dir=data_dir
         )
@@ -95,49 +95,9 @@ def plot_density(name_of_file=data_dir / config.filename):
     data      = np.loadtxt(name_of_file, skiprows=1) # load the data from the file, skip the header
     r_centers = data[:, 0]
     rho       = data[:, 1]
-    energies  = data[:, 2] # may be needed
+
 
     plot_onebody_density(r_centers, rho, config)
 
 plot_density(data_dir/config.filename)
 
-
-
-"""
-# Extract training results
-energies = np.array(system.mean_ana_energies)
-alpha_array = np.array(system.alpha_array_tested)
-accept_rate = np.array(system.accept_rate_array)
-
-# Save data if requested from config
-if config.write_to_file_training:
-    filename=config.filename
-    write_to_file(
-        [alpha_array, energies, accept_rate],
-        ["alpha", "mean_ana_energy", "acceptance_rate"],
-        config.filename,
-        data_dir=data_dir
-    )
-
-def plot(name_of_file=data_dir / config.filename):
-    print(name_of_file)
-    data = np.loadtxt(name_of_file, skiprows=1) # load the data from the file, skip the header
-    alpha_array = data[:, 0]
-    energies= data[:, 1]
-    accept_rate = data[:, 2]
-    print("acceptance_rate:", accept_rate)
-    plt.figure()
-    plt.plot(alpha_array, energies, marker="o")
-    plt.xlabel("alpha")
-    plt.ylabel("Energy(alpha)")
-    plt.title(f"Energy vs alpha for {config.mcmc_alg} algorithm, N={config.nparticles}, dim={config.dim}")
-    plt.grid(True)
-
-    # Mark best alpha
-    best_idx = np.argmin(energies)
-    plt.scatter(alpha_array[best_idx], energies[best_idx])
-    plt.show()
-
-plot(data_dir / filename)
-
-"""

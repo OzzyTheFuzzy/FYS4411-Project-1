@@ -29,10 +29,11 @@ class Sampler:
         self.scale = scale
         self.burn_in = None
         self.set_hamiltonian(hamiltonian)
+        
 
 
 
-    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False):
+    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False, obd=False):
         """
         Run an MCMC batch at fixed alpha and return:
         - E_ana: tensor of analytic local energies (shape [n_samples])
@@ -47,14 +48,16 @@ class Sampler:
         t_num_tot = 0
         O_list = [] if need_O else None
         counts = torch.zeros((state.n_bins,), dtype=torch.float64) if state.obd else None
+        r_centers = None; shell_volumes = None; count=None #define 
+
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
         
             if i < burn_in:
                 continue
 
-            r=state.positions
-
+            r = state.positions
+            nparticles = r.shape[0]
             if num:
                 E_ana, t_ana, V = self.hamiltonian.local_energy(wf, r, num=True)
                 t_ana_tot+=t_ana
@@ -72,7 +75,7 @@ class Sampler:
                 O_val = self.hamiltonian.O_alpha_analytic(wf, r)
                 O_list.append(O_val.detach())
 
-            if state.obd:
+            if obd:
                 r_centers, count, shell_volumes = accumulate_onebody_density(r, state.n_bins, r_max=state.r_max)
                 counts+=count
 
@@ -86,20 +89,23 @@ class Sampler:
         if num:
             return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
         
-        if state.obd:
-            rho = compute_onebody_density(counts, shell_volumes, wf.nparticles, MC_training_cycles - burn_in)
+        if obd:
+           
+            print("r stats:", r.min().item(), r.max().item(), r.mean().item())
+            rho = compute_onebody_density(counts, shell_volumes, nparticles, MC_training_cycles - burn_in)
 
             return E_ana, E_num, O, accept_rate, rho, r_centers
         
-        return E_ana, E_num, O, accept_rate
+        else:
+            return E_ana, E_num, O, accept_rate
 
-    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy"):
+    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy", obd=False):
         """
         Function for final sampling 
         """
         
         # Use different seed for final alpha
-
+         
         if num:
             E_ana, E_num, _, accept_rate, t_ana_tot, t_num_tot = self._sample_energy_and_optional_O(
             wf=wf, state=state,
@@ -110,13 +116,13 @@ class Sampler:
 
         else:
             # to retrieve onebody density
-            if state.obd:
+            if obd:
                 E_ana, _, _, accept_rate, rho, r_centers = self._sample_energy_and_optional_O(
                 wf=wf, state=state,
                 MC_training_cycles=nsamples, 
                 seed=seed, 
                 burn_in=burn_in,
-                num=num, )
+                num=num, obd=obd)
 
             else:   
                 E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
@@ -161,7 +167,7 @@ class Sampler:
         if state.obd:
             sample_results["r_centers"] = r_centers
             sample_results["rho"] = rho
-            
+
         return sample_results
 
     def set_hamiltonian(self, hamiltonian):

@@ -67,8 +67,11 @@ class Metropolis(Sampler):
             positions=new_positions,
             logp=new_logp,
             n_accepted=new_n_accepted,
-            delta=state.delta + 1
-)
+            delta=state.delta + 1,
+            obd=state.obd,
+            n_bins=state.n_bins,
+            r_max=state.r_max,
+        )
         return new_state
 
 

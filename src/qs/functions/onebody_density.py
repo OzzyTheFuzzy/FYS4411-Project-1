@@ -60,7 +60,7 @@ def plot_onebody_density(r_centers, rho, config):
     import matplotlib.pyplot as plt
 
     plt.figure()
-    plt.plot(r_centers.numpy(), rho.numpy(), marker="o")
+    plt.plot(r_centers, rho, marker="o")
     plt.xlabel("r")
     plt.ylabel("rho(r)")
     plt.title(f"One-body density for {config.mcmc_alg} algorithm, N={config.nparticles}, dim={config.dim}")

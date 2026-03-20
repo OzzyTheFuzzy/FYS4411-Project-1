@@ -111,7 +111,8 @@ class QS:
             # Wavefunction log-probability at positions. self.wf is a VMC object
             logp = self.wf.wf.log_prob(positions)  
 
-            return State(positions=positions, logp=logp, n_accepted=0, delta=0)
+            return State(positions=positions, logp=logp, n_accepted=0, delta=0, obd=self.obd,        
+            n_bins=self.n_bins,  r_max=self.r_max)
 
     def set_sampler(self, mcmc_alg, scale=0.1, obd=False, n_bins=80, r_max=None):
 
@@ -270,11 +271,10 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-    def sample(self, nsamples,final_burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy"):
+    def sample(self, nsamples, final_burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy", obd=False):
     
         """helper for the sample method from the Sampler class"""
-            # DEBUG
-
+        
         self._is_initialized() # check if the system is initialized
         self._is_trained() # check if the system is trained
 
@@ -284,17 +284,9 @@ class QS:
 
         self.sampler.scale = self._scale * np.sqrt(1.0 / self.wf.alpha.item())
         # call the sample method from the sampler class
-        self._results = self.sampler._sample(
-        wf=self.wf,
-        nsamples=nsamples,
-        state=self._make_initial_state(),
-        scale=self.sampler.scale,
-        seed=seed,
-        chain_id=0,
-        burn_in=final_burn_in,
-        num=num,
-        write_to_file=write_to_file,
-        name_of_file=name_of_file,
+        self._results = self.sampler._sample(wf=self.wf, nsamples=nsamples, state=self._make_initial_state(),
+        scale=self.sampler.scale, seed=seed, chain_id=0, burn_in=final_burn_in, num=num,
+        write_to_file=write_to_file, name_of_file=name_of_file, obd=obd
     )
         return self._results
     
