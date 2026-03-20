@@ -9,9 +9,9 @@ beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 100       # this is cycles for training
-mcmc_alg        = "metropolis" # "metropolis" or "langevin"
-scale           = 0.2        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
+training_cycles = 500000       # this is cycles for training
+mcmc_alg        = "langevin" # "metropolis" or "langevin"
+scale           = 0.5        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
@@ -27,7 +27,7 @@ nchains             = 1 # number of Markov chains
 write_to_file       = True    # True if you want to write energies to file
 write_to_file_training= True    # True if you want to write energies vs alpha during training to file
 name_of_file        = f"testing{nparticles}_d{dim}"  #  name of txt file for energies of last sample
-filename            = 'energy_vs_alpha_m.txt' # name of txt file for energies vs alpha during training
+filename            = 'energy_vs_alpha_l.txt' # name of txt file for energies vs alpha during training
 
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer
