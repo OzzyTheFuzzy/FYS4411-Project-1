@@ -93,7 +93,8 @@ class Sampler:
            
             print("r stats:", r.min().item(), r.max().item(), r.mean().item())
             rho = compute_onebody_density(counts, shell_volumes, nparticles, MC_training_cycles - burn_in)
-
+            integral = torch.sum(rho * shell_volumes)
+            print(integral)
             return E_ana, E_num, O, accept_rate, rho, r_centers
         
         else:

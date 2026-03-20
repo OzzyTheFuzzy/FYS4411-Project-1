@@ -2,8 +2,8 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 1
-dim        = 1
+nparticles = 10
+dim        = 3
 wf_type    = "vmc" 
 beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
@@ -16,7 +16,7 @@ backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(100000)  # 2**18 = 262144
+nsamples        = int(500000)  # 2**18 = 262144
 seed            = 142
 final_burn_in   = int(nsamples//10)*2
 
@@ -27,12 +27,12 @@ nchains             = 1 # number of Markov chains
 write_to_file       = True    # True if you want to write energies to file
 write_to_file_training= False    # True if you want to write energies vs alpha during training to file
 name_of_file        = f"noname{nparticles}_d{dim}"  #  name of txt file for energies of last sample
-filename            = f'test_r_centers_rho_E_without_interactions_N{nparticles}_d{dim}.txt' # name of txt file for energies vs alpha during training
+filename            = f'tes_r_centers_rho_E_without_interactions_N{nparticles}_d{dim}.txt' # name of txt file for energies vs alpha during training
 
 """For one body density"""
-obd = True # set True to compute one body density, set False to not compute it
-n_bins = 110 # number of bins for one body density
-r_max = None # maximum radius for one body density
+obd = True # set True to compute onebody density, set False to not compute it
+n_bins = 20# number of bins for onebody density
+r_max = 2.5 # maximum radius for onebody density
 
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer

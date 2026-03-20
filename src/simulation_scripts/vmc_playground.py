@@ -65,7 +65,7 @@ def train_and_sample_obd():
 
 
     # define r_max and reset the sampler with the onebody density settings for final sampling
-    r_max  = torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
+    r_max  =2 * torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)
 
     # make initial state for final sampling and run final sampling
