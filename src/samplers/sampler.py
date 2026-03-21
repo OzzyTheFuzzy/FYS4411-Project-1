@@ -10,7 +10,7 @@ sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-
 import jax
 import numpy as np
 import torch
-from qs.functions.onebody_density import accumulate_onebody_density, compute_onebody_density
+from qs.functions.onebody_density import accumulate_column_density, plot_column_density, compute_column_density
 from qs.utils import check_and_set_nchains # we suggest you use this function to check and set the number of chains when you parallelize
 from qs.utils import generate_seed_sequence
 from qs.utils import State
@@ -76,7 +76,7 @@ class Sampler:
                 O_list.append(O_val.detach())
 
             if obd:
-                r_centers, count, shell_volumes = accumulate_onebody_density(r, state.n_bins, r_max=state.r_max)
+                r_centers, count, annulus_areas = accumulate_column_density(r, state.n_bins, r_max=state.r_max)
                 counts+=count
 
 
@@ -90,10 +90,8 @@ class Sampler:
             return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
         
         if obd:
-           
-            print("r stats:", r.min().item(), r.max().item(), r.mean().item())
-            rho = compute_onebody_density(counts, shell_volumes, nparticles, MC_training_cycles - burn_in)
-            integral = torch.sum(rho * shell_volumes)
+            rho = compute_column_density(counts, annulus_areas, nparticles, MC_training_cycles - burn_in)
+            integral = torch.sum(rho * annulus_areas)
             print(integral)
             return E_ana, E_num, O, accept_rate, rho, r_centers
         

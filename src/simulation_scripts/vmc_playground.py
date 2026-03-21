@@ -16,7 +16,7 @@ data_dir = project_root / "data"
 sys.path.insert(0, str(src_path))
 sys.path.insert(0, str(src_path / "simulation_scripts"))
 from qs.functions.write_to_file import write_to_file
-from qs.functions.onebody_density import plot_onebody_density
+from qs.functions.onebody_density import plot_column_density
 
 
 from qs import quantum_state
@@ -97,7 +97,7 @@ def plot_density(name_of_file=data_dir / config.filename):
     rho       = data[:, 1]
 
 
-    plot_onebody_density(r_centers, rho, config)
+    plot_column_density(r_centers, rho, config)
 
 plot_density(data_dir/config.filename)
 
