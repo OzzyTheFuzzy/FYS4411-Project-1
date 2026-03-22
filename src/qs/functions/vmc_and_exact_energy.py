@@ -45,27 +45,18 @@ def find_energy_vmc(dim, nparticles, config=config, scale=config.scale):
         optimizer=config.optimizer,
         eta=eta,
     )
-
-    # scale the training cycles with the number of particles for better convergence
-    training_cycles = config.training_cycles  
     
     # train the system and find the best alpha (scale adapts per alpha internally)
-    
   
     system.train(MC_training_cycles=config.training_cycles, 
             alpha_array=config.alpha_array, 
             burn_in=config.burn_in, 
-            num_iterations=config.iterations, 
+            num_iterations=config.num_iterations, 
             alpha_0=config.alpha_0, 
             num=config.num)
 
 
-    # retrieve results for the best alpha with burn-in
-    sample_results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
-                        num=config.num)
-
-
-    return sample_results, system
+    return system
 
 def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     """Compare the VMC results with the exact results for different dimensions and number of particles. 
@@ -89,8 +80,11 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
         for n in range(len(nparticles_array)):
 
             print(f"Calculating energy and std for d={dimensions[d]}, n={nparticles_array[n]}")
-            sample_results, system = find_energy_vmc(dimensions[d], nparticles_array[n], config=config) 
-
+            system = find_energy_vmc(dimensions[d], nparticles_array[n], config=config) 
+            
+            # retrieve results for the best alpha with burn-in
+            sample_results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
+                                num=config.num)
             # extract the relevant results from the sample_results dictionary
             alpha = sample_results["alpha"]
             energy_analytical = sample_results["energy_analytical"]

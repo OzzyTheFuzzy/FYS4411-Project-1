@@ -10,14 +10,14 @@ beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 
 omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 500000       # this is cycles for training
+training_cycles = 50000       # this is cycles for training
 mcmc_alg        = "langevin" # "metropolis" or "langevin"
 scale           = 0.5        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(1000)  # 2**18 = 262144
+nsamples        = int(100000)  # 2**18 = 262144
 seed            = 142
 final_burn_in   = int(nsamples//10)*2
 

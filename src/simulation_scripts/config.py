@@ -9,7 +9,7 @@ beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, f
 omega_z    = beta    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
-training_cycles = 5000       # this is cycles for training
+training_cycles = 10       # this is cycles for training
 mcmc_alg        = "langevin" # "metropolis" or "langevin"
 scale           = 0.5      # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"

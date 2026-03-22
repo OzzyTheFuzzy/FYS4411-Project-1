@@ -12,8 +12,8 @@ from simulation_scripts import config_steepest_descent_vmc as config_steep
 
 dim=config_steep.dim; nparticles=config_steep.nparticles; alpha_array = config_steep.alpha_array
 
-results, system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, alpha_array, config_steep)
-
+results, system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config_steep, config_steep.scale)
+print(system.alpha_array, system.mean_ana_energies)
 plt.scatter(system.alpha_array, system.mean_ana_energies)
 plt.xlabel("alpha")
 plt.ylabel("Energy")

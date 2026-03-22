@@ -161,13 +161,14 @@ class QS:
         self.mean_ana_energies = []
         self.alpha_array_tested =[]
         self.accept_rate_array = []
+
         if alpha_0 is not None:
             alpha = torch.tensor(alpha_0, dtype=torch.float64)
             alpha_array_tested = []
             alpha_array_tested.append(alpha_0)
             alpha_array =np.zeros(num_iterations) # placeholder for alpha values during training
             tol = 1e-4      #tolerance for early stopping based on energy improvement
-            patience = 7    #number of iterations to wait for improvement before stopping
+            patience = 5    #number of iterations to wait for improvement before stopping
             no_improve_count = 0 
             best_energy = float("inf")
             iteration = 0
@@ -236,7 +237,7 @@ class QS:
             self.accept_rate_array.append(accept_rate)
 
             print(
-                f"alpha={alpha:.3f} accept_rate={accept_rate:.3f} "
+                f"alpha={a_val:.3f} accept_rate={accept_rate:.3f} "
                 f"mean_E_ana={mean_ana_energy:.6f}, scale={self.sampler.scale:.4f}")
             
             # if gd is activated compute next alpha
@@ -249,7 +250,7 @@ class QS:
 
                 # Store global stats for plotting
                 iteration+=1
-
+                
                 if best_energy - mean_ana_energy > tol:
                     best_energy = mean_ana_energy
                     no_improve_count = 0
