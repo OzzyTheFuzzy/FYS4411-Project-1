@@ -98,7 +98,7 @@ class QS:
 
         # Start positions near origin (Gaussian). Shape: (N, dim)
         while True:
-            positions = 0.1 * torch.randn(self._N, self._dim, dtype=torch.float64)
+            positions = 0.5 * torch.randn(self._N, self._dim, dtype=torch.float64) #
 
             # safeguard for the hard core condition
             if self.a != 0.0 or self._N > 1:
@@ -167,8 +167,8 @@ class QS:
             alpha_array_tested = []
             alpha_array_tested.append(alpha_0)
             alpha_array =np.zeros(num_iterations) # placeholder for alpha values during training
-            tol = 1e-2      #tolerance for early stopping based on energy improvement
-            patience = 5    #number of iterations to wait for improvement before stopping
+            tol = 1e-4      #tolerance for early stopping based on energy improvement
+            patience = 7    #number of iterations to wait for improvement before stopping
             no_improve_count = 0 
             best_energy = float("inf")
             iteration = 0
