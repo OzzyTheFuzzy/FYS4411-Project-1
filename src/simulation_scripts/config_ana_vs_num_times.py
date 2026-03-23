@@ -8,7 +8,8 @@ nparticles = 100
 dim        = 1
 wf_type    = "vmc" 
 beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
-omega_z    = 0.0    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
+omega_z    = None    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
+omega      = 1.0  # harmonic oscillator frequency
 
 """ Monte Carlo parameters"""
 training_cycles = 1000  # this is cycles for the ansatz

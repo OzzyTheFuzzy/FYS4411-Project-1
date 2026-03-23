@@ -34,7 +34,7 @@ if config.write_to_file:
 print(alphas, energies)
 iterations = np.linspace(0,len(alphas)-1, len(alphas))
 
-plt.scatter(iterations, alphas, label="alpha values")
+plt.scatter(alphas, energies, label="alpha values")
 plt.xlabel("Iteration")
 plt.ylabel("Alpha")
 plt.title(f"Updated alpha using steepest descent for {nparticles} particles in {dim}D")

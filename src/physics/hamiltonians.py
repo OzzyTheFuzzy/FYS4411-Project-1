@@ -152,7 +152,7 @@ class HarmonicOscillator(Hamiltonian):
 
         else:
             beta =vmc.beta
-            K_ana = vmc.alpha * self._N *(2+vmc.beta) - 2*alpha**2 * self.backend.sum(self.backend.sum(r[:,:-1]**2)) - 2 * alpha**2 * beta**2 * self.backend.sum(self.backend.sum(r[:, -1]**2))
+            K_ana = vmc.alpha * self._N *(2 + beta) - 2*alpha**2 * self.backend.sum(self.backend.sum(r[:,:-1]**2)) - 2 * alpha**2 * beta**2 * self.backend.sum(self.backend.sum(r[:, -1]**2))
      
         return K_ana
     

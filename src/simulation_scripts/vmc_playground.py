@@ -17,7 +17,7 @@ sys.path.insert(0, str(src_path))
 sys.path.insert(0, str(src_path / "simulation_scripts"))
 from qs.functions.write_to_file import write_to_file
 from qs.functions.onebody_density import plot_column_density
-
+from qs.functions import vmc_and_exact_energy as vmc_and_exact_energy
 
 from qs import quantum_state
 import config
@@ -29,41 +29,8 @@ jax.config.update("jax_platform_name", "cpu")
 
 def train_and_sample_obd():
     # set up the system with its backend and level of logging, seed, and other general properties depending on how you want to run it
-    system = quantum_state.QS(
-        backend=config.backend,
-        log=True,
-        logger_level="INFO",
-        seed=config.seed,
-    )
-
-    # set up the wave function with some of its properties 
-    system.set_wf(
-        config.wf_type,
-        config.nparticles,
-        config.dim,
-        config.a,
-    )
-
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=False)
-
-    # choose the hamiltonian
-    system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=1.0, omega_z=config.omega_z)
-
-    # choose the optimizer, learning rate, and other properties depending on the optimizer
-    system.set_optimizer(
-        optimizer=config.optimizer,
-        eta=config.eta,
-    )
-
-    # train the system, meaning we find the optimal variational parameters for the wave function
-    system.train(MC_training_cycles=config.training_cycles, 
-                alpha_array=config.alpha_array, 
-                burn_in=config.burn_in, 
-                num_iterations=config.iterations, 
-                alpha_0=config.alpha_0, 
-                num=config.num)
-
-
+    system = vmc_and_exact_energy.find_energy_vmc(config.dim, config.nparticles, config, config.scale)
+    
     # define r_max and reset the sampler with the onebody density settings for final sampling
     r_max  =2 * torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)

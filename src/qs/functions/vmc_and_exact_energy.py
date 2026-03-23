@@ -28,22 +28,20 @@ def find_energy_vmc(dim, nparticles, config=config, scale=config.scale):
         config.wf_type,
         nparticles,
         dim,
-        config.a
+        config.a,
+        config.beta
     )
 
     # choose the sampler algorithm and scale
-    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale)
+    system.set_sampler(mcmc_alg=config.mcmc_alg, scale=scale, obd=False)
 
     # choose the hamiltonian
-    system.set_hamiltonian(type_="ho", int_type="Coulomb")
-
-    # scale learningrate with # of particles
-    eta=config.eta/(np.sqrt(nparticles))
+    system.set_hamiltonian(type_="ho", int_type="Coulomb", omega_ho=config.omega, omega_z=config.omega_z)
 
     # choose the optimizer, learning rate, and other properties depending on the optimizer
     system.set_optimizer(
         optimizer=config.optimizer,
-        eta=eta,
+        eta=config.eta,
     )
     
     # train the system and find the best alpha (scale adapts per alpha internally)
@@ -65,7 +63,7 @@ def vmc_vs_exact(name_of_file = "../../data/vmc_results_test.txt"):
     alpha_array = config.alpha_array
     dimensions = config.dimensions
     nparticles_array = config.nparticles_array
-    omega = config.omega_ho
+    omega = config.omega
 
     energies_vmc = np.zeros((len(dimensions), len(nparticles_array))) # array to store the VMC energies
     energies_exact = np.zeros((len(dimensions), len(nparticles_array))) # array to store the exact energies

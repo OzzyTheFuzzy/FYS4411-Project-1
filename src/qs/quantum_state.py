@@ -101,7 +101,7 @@ class QS:
             positions = 0.1 * torch.randn(self._N, self._dim, dtype=torch.float64)
 
             # safeguard for the hard core condition
-            if self.a != 0.0:
+            if self.a != 0.0 or self._N > 1:
                 r_ij_abs, _ = self.wf.wf.distance_and_distance_vec(positions)
                 iu = torch.triu_indices(self._N, self._N, offset=1)
                 rij = r_ij_abs[iu[0], iu[1]]
@@ -162,7 +162,7 @@ class QS:
         self.alpha_array_tested =[]
         self.accept_rate_array = []
 
-        if alpha_0 is not None:
+        if alpha_0 !=0.0 and alpha_0 is not None:
             alpha = torch.tensor(alpha_0, dtype=torch.float64)
             alpha_array_tested = []
             alpha_array_tested.append(alpha_0)
@@ -185,7 +185,7 @@ class QS:
             print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
             
             # create tensor for current alpha and retrieve alpha value
-            if alpha_0 is None:
+            if alpha_0 == 0.0:
                 alpha = alpha_i
                 idx = np.where(alpha_array == alpha_i)[0].item()
                 a_tensor = torch.tensor(float(alpha), dtype=torch.float64)
@@ -211,6 +211,7 @@ class QS:
             
             # call sample function from sampler class
             if num:
+                print('num')
                 E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot = self.sampler._sample_energy_and_optional_O(
                 self.wf, state,
                 MC_training_cycles, seed=self._seed, 
@@ -241,7 +242,7 @@ class QS:
                 f"mean_E_ana={mean_ana_energy:.6f}, scale={self.sampler.scale:.4f}")
             
             # if gd is activated compute next alpha
-            if alpha_0 is not None:
+            if alpha_0 != 0.0 and alpha_0 is not None:
                 # Compute the gradient dE/d alpha and the mean analytical energy
                 dE_dalpha, _ = self.hamiltonian.compute_gradient(O, E_ana)
                 
