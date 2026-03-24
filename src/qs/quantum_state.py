@@ -101,7 +101,7 @@ class QS:
             positions = 0.5 * torch.randn(self._N, self._dim, dtype=torch.float64) #
 
             # safeguard for the hard core condition
-            if self.a != 0.0 or self._N > 1:
+            if self.a != 0.0 and self._N > 1:
                 r_ij_abs, _ = self.wf.wf.distance_and_distance_vec(positions)
                 iu = torch.triu_indices(self._N, self._N, offset=1)
                 rij = r_ij_abs[iu[0], iu[1]]

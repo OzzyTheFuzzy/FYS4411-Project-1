@@ -5,7 +5,7 @@ output_filename = "../../data/vmc_vs_exact_test.txt"
 
 """ System parameters """
 dim               = 3
-nparticles        = 100
+nparticles        = 10
 omega             = 1.0   # harmonic oscillator frequency
 wf_type           = "vmc"
 beta              = 2.82843     #beta = 2.82843 for elliptical trap, beta = 1.0 for spherical trap
@@ -34,13 +34,13 @@ eta               = 0.001   # learning rate for steepest descent optimizer 0.01 
 alpha_0           = 0.4    # put None for using jumps and not gd
 
 """ Interaction parameters """
-a    = 0.0043   # Jastrow factor strength (0.0 = no interactions) 0.0043 for standard
+a    = 0.0043  # Jastrow factor strength (0.0 = no interactions) 0.0043 for standard
 
 """write to file"""
 write_to_file          = False   # True if you want to write energies to file for final sampling (used for blocking)
 write_to_file_training = True   # True if you want to write energies vs alpha during training to file
 name_of_file           = f"energy_N{nparticles}_d{dim}_.txt"  #  name of txt file for energies of last sample
-filename               = f'energy_vs_alpha_N{nparticles}_.txt' # name of txt file for energies vs alpha during training
+filename               = f'energy_vs_alpha_a{a}__N{nparticles}_.txt' # name of txt file for energies vs alpha during training
 
 
 

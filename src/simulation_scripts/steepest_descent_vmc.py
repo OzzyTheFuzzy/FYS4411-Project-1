@@ -15,9 +15,6 @@ project_root = Path(__file__).resolve().parents[2]
 
 dim = config.dim; nparticles = config.nparticles; alpha_array = config.alpha_array
 
-
-    
-
 system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config, config.scale)
 
 alphas=system.alpha_array_tested
@@ -45,5 +42,5 @@ plt.ylabel("Alpha")
 plt.title(f"Updated alpha using steepest descent for {nparticles} particles in {dim}D")
 plt.grid("True")
 
-plt.savefig(project_root / "figures" / f"iteration_alpha{config.alpha_0}_N{nparticles}.pdf", dpi=300)
+plt.savefig(project_root / "figures" / f"iteration_alpha_a{config.a}_{config.alpha_0}_N{nparticles}.pdf", dpi=300)
 plt.show()
