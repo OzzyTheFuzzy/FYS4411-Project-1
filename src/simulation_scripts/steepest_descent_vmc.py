@@ -1,4 +1,5 @@
 #steepest_descent
+from platform import system
 import sys
 import time
 import numpy as np
@@ -14,30 +15,26 @@ project_root = Path(__file__).resolve().parents[2]
 
 dim = config.dim; nparticles = config.nparticles; alpha_array = config.alpha_array
 
-def steepest_trainer():
+
     
 
-    system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config, config.scale)
-    
-
-    if config.write_to_file_training:
-        filename=config.filename
-        write_to_file(
-            [alphas, system.mean_ana_energies, system.accept_rate_array],
-            ["alpha", "mean_ana_energy", "acceptance_rate"],
-            config.filename,
-            data_dir=project_root / "data"
-        )
-
-    if config.write_to_file:
-        results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
-                                num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
-    return system
-
-system=steepest_trainer()
+system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config, config.scale)
 
 alphas=system.alpha_array_tested
 energies=system.mean_ana_energies
+
+if config.write_to_file_training:
+    filename=config.filename
+    write_to_file(
+        [alphas, system.mean_ana_energies, system.accept_rate_array],
+        ["alpha", "mean_ana_energy", "acceptance_rate"],
+        config.filename,
+        data_dir=project_root / "data"
+    )
+
+if config.write_to_file:
+    results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
+                            num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
 
 print(alphas, energies)
 iterations = np.linspace(0,len(alphas)-1, len(alphas))
