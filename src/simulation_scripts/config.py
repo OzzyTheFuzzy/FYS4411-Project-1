@@ -16,7 +16,7 @@ backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(500000)  # 2**18 = 262144
+nsamples        = int(1000000)  # 2**18 = 262144
 seed            = 142
 final_burn_in   = int(nsamples//10)*2
 omega=1.0

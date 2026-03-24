@@ -54,7 +54,7 @@ def train_and_sample_obd():
     
     return system, results
 
-#system, results = train_and_sample_obd()
+system, results = train_and_sample_obd()
 
 
 def plot_density(name_of_file=data_dir / config.filename):
