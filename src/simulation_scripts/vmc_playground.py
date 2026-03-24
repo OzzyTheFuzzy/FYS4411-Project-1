@@ -20,7 +20,7 @@ from qs.functions.onebody_density import plot_column_density
 from qs.functions import vmc_and_exact_energy as vmc_and_exact_energy
 
 from qs import quantum_state
-import config
+import config as config
 
 
 jax.config.update("jax_enable_x64", True)
@@ -54,7 +54,7 @@ def train_and_sample_obd():
     
     return system, results
 
-system, results = train_and_sample_obd()
+#system, results = train_and_sample_obd()
 
 
 def plot_density(name_of_file=data_dir / config.filename):

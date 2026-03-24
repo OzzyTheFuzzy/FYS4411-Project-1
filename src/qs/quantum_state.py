@@ -173,25 +173,28 @@ class QS:
             best_energy = float("inf")
             iteration = 0
             need_O = True
-            idx = 0
+            
 
         else:
             need_O = False
             alpha_array_tested=alpha_array
-        
+        idx = 0
         for alpha_i in tqdm(alpha_array, desc="[Training progress]", colour="green") if self._log else alpha_array:
             
             print("N, D:", self.hamiltonian._N, self.hamiltonian._dim)
             print("omega_ho:", self.hamiltonian.omega_ho, "omega_z:", self.hamiltonian.omega_z)
             
+            #inde for seeds so every alpha gets a different see
+            
             # create tensor for current alpha and retrieve alpha value
-            if alpha_0 == 0.0:
+            
+            if alpha_0 == 0.0 or None:
                 alpha = alpha_i
-                idx = np.where(alpha_array == alpha_i)[0].item()
+                
                 a_tensor = torch.tensor(float(alpha), dtype=torch.float64)
                 a_val = float(alpha)
             else:
-                idx += 10
+                a_tensor = torch.tensor(float(alpha), dtype=torch.float64)
                 a_tensor = alpha.detach().clone()
                 a_val = alpha.detach().item()
 
@@ -227,6 +230,8 @@ class QS:
                     need_O=need_O,
                     num=num,
                 )
+            # change for every alpha
+            idx += 10
             # compute mean energies
             mean_ana_energy = E_ana.mean().item()
             mean_num_energy = E_num.mean().item() if num else mean_ana_energy
