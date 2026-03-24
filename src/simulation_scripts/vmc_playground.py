@@ -32,7 +32,7 @@ def train_and_sample_obd():
     system = vmc_and_exact_energy.find_energy_vmc(config.dim, config.nparticles, config, config.scale)
     
     # define r_max and reset the sampler with the onebody density settings for final sampling
-    r_max  =2 * torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
+    r_max  = 2 * torch.sqrt(1 / (2 * system.wf.alpha)) if config.r_max is None else config.r_max
     system.set_sampler(mcmc_alg=config.mcmc_alg, scale=config.scale, obd=config.obd, n_bins=config.n_bins, r_max=r_max)
 
     # make initial state for final sampling and run final sampling
@@ -43,7 +43,7 @@ def train_and_sample_obd():
     print(results)
     r_centers, rho =results.get("r_centers"), results.get("rho")
 
-    if config.write_to_file:
+    if config.write_obd_to_file:
         
         write_to_file(
             [r_centers, rho],

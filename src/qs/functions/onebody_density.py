@@ -1,5 +1,10 @@
 import torch
 
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parents[2]
+
+
 def accumulate_column_density(r, n_bins=25, r_max=None):
     """
     Compute column density histogram from saved Monte Carlo positions.
@@ -57,7 +62,8 @@ def plot_column_density(r_centers, n_c, config):
     plt.plot(r_centers, n_c, marker="o")
     plt.xlabel("r_perp")
     plt.ylabel("n_c(r_perp)")
-    plt.title(f"Column density for {config.mcmc_alg} algorithm, N={config.nparticles}, dim={config.dim}")
+    plt.title(f"Column density for N={config.nparticles} and {config.nsamples}")
     plt.grid(True)
+    plt.savefig(project_root / "figures" / f"column_density_N{config.nparticles}_samples{config.nsamples}.pdf", dpi=300)
     plt.show()
 

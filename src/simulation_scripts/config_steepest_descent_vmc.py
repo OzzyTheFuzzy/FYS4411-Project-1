@@ -5,14 +5,14 @@ output_filename = "../../data/vmc_vs_exact_test.txt"
 
 """ System parameters """
 dim               = 3
-nparticles        = 50
+nparticles        = 10
 omega             = 1.0   # harmonic oscillator frequency
 wf_type           = "vmc"
 beta              = 2.82843     #beta = 2.82843 for elliptical trap, beta = 1.0 for spherical trap
 omega_z           = beta     # omexga_z=beta for elliptical trap, omega_z=0.0 for spherical trap
 
 """ Monte Carlo parameters """
-nsamples          = int(2**15)   # samples for the final calculation of the energy after training
+nsamples          = int(500000)   # samples for the final calculation of the energy after training
 final_burn_in     = int(nsamples // 10)
 nchains           = 1
 training_cycles   = 50000 # number of training cycles for each alpha
@@ -23,14 +23,14 @@ batch_size        = 200
 detailed          = True
 final_sampling_seed = 999
 seed                = 42
-burn_in             = int(training_cycles // 10) * 4  # number of burn-in samples to discard
+burn_in             = int(training_cycles // 10) * 2  # number of burn-in samples to discard
 scale               = 0.4   # scale for the MCMC proposal distribution
 num                 = False
 alpha_array         = np.linspace(0.1, 0.9, 11)  # array of alphas (not used in GD)
 
 """ Optimizer """
 optimizer         = "gd"   # either "gd" or "adam"
-eta               = 0.0005   # learning rate for steepest descent optimizer 0.01 for 100 particles, 0.0075 for 500 particles
+eta               = 0.001   # learning rate for steepest descent optimizer 0.01 for 100 particles, 0.0075 for 500 particles
 alpha_0           = 0.4    # put None for using jumps and not gd
 
 """ Interaction parameters """
