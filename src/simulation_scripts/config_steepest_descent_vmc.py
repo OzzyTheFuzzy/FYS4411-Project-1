@@ -30,7 +30,7 @@ alpha_array         = np.linspace(0.1, 0.9, 11)  # array of alphas (not used in 
 
 """ Optimizer """
 optimizer         = "gd"   # either "gd" or "adam"
-eta               = 0.001   # learning rate for steepest descent optimizer 0.01 for 100 particles, 0.0075 for 500 particles. 0.005 for 10 particles with interactions
+eta               = 0.005   # learning rate for steepest descent optimizer 0.01 for 100 particles, 0.0075 for 500 particles. 0.005 for 10 particles with interactions
 alpha_0           = 0.4    # put None for using jumps and not gd
 
 """ Interaction parameters """
