@@ -5,7 +5,7 @@ import numpy as np
 nparticles = 50
 dim        = 3
 wf_type    = "vmc" 
-beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
+beta       = 2.82843    # for wavefunction with eliptical trap set beta 2.82843, for spherical trap set beta = 1
 omega_z    = beta    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1.0
 
 """ Monte Carlo parameters"""
@@ -22,12 +22,12 @@ final_burn_in   = int(nsamples//10)*2
 omega           = 1.0
 final_sampling_seed = 999
 burn_in             = int(training_cycles//10 * 2) # number of initial samples to discard as burn-in when training 10-20%
-alpha_array         = np.array([0.489]) # array of alpha values to train on
+alpha_array         = np.array([0.5]) # array of alpha values to train on
 nchains             = 1 # number of Markov chains
 
 """For one body density"""
 obd    = True # set True to compute onebody density, set False to not compute it
-n_bins = 25# number of bins for onebody density
+n_bins = 25 # number of bins for onebody density
 r_max   = 3# maximum radius for onebody density
 
 """ Gradient descent parameters"""
@@ -39,7 +39,7 @@ need_O      = False
 num_iterations= 100 # number of iterations for training with steepest descent
 
 """ Inteaction parameter"""
-a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
+a = 0.0    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
 
 """ Write to file """
 write_obd_to_file   = True    # True if you want to write column density data to file

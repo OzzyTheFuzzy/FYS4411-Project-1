@@ -66,6 +66,6 @@ def plot_column_density(r_centers, n_c, config):
     plt.ylim(-0.01, 0.35)        
     plt.title(f"Column density for N={config.nparticles} and a={config.a}")
     plt.grid(True)
-    plt.savefig(project_root / "figures" / f"column_density_N{config.nparticles}_samples{config.nsamples}.pdf", dpi=300)
+    plt.savefig(project_root / "figures" / f"column_density_N{config.nparticles}_samples{config.nsamples}_a{config.a}.pdf", dpi=300)
     plt.show()
 
