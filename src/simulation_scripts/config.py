@@ -2,7 +2,7 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 50
+nparticles = 10
 dim        = 3
 wf_type    = "vmc" 
 beta       = 2.82843    # for wavefunction with eliptical trap set beta 2.82843, for spherical trap set beta = 1
@@ -39,11 +39,11 @@ need_O      = False
 num_iterations= 100 # number of iterations for training with steepest descent
 
 """ Inteaction parameter"""
-a = 0.0    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
+a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
 
 """ Write to file """
 write_obd_to_file   = True    # True if you want to write column density data to file
 write_to_file       = True   # True if you want to write energies to file for last sampling
-name_of_file        = f"energy_a{a}_N{nparticles}_d{dim}"  #  name of txt file for energies of last sample
+name_of_file        = f"energy_a{a}_N{nparticles}_d{dim}.txt"  #  name of txt file for energies of last sample
 filename            = f'column_density_a{a}_N{nparticles}.txt' # name of txt file for column density data
 
