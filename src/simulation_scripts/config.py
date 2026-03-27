@@ -16,7 +16,7 @@ backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(1000000)  # 2**18 = 262144
+nsamples        = int(1000000)  # 1,000,000 samples for final sampling
 seed            = 142
 final_burn_in   = int(nsamples//10)*2
 omega           = 1.0
@@ -42,8 +42,8 @@ num_iterations= 100 # number of iterations for training with steepest descent
 a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
 
 """ Write to file """
-write_obd_to_file   = True    # True if you want to write column density data to file
-write_to_file       = True   # True if you want to write energies to file for last sampling
+write_obd_to_file   = False    # True if you want to write column density data to file
+write_to_file       = True    # True if you want to write energies to file for last sampling
 name_of_file        = f"energy_a{a}_N{nparticles}_d{dim}.txt"  #  name of txt file for energies of last sample
 filename            = f'column_density_a{a}_N{nparticles}.txt' # name of txt file for column density data
 

@@ -157,7 +157,7 @@ class Sampler:
 
             filepath = data_dir / name_of_file
             os.makedirs(filepath.parent, exist_ok=True)
-            np.savetxt(filepath, out, header="E_ana E_num", fmt="%.12f  %.12f")
+            np.savetxt(filepath, out, header="E_ana E_num", fmt="%.18e  %.18e")
             
             
         if num:

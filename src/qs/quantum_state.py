@@ -167,7 +167,7 @@ class QS:
             alpha_array_tested = []
             alpha_array_tested.append(alpha_0)
             alpha_array =np.zeros(num_iterations) # placeholder for alpha values during training
-            tol = 1e-4      #tolerance for early stopping based on energy improvement
+            tol = 1e-2      #tolerance for early stopping based on energy improvement
             patience = 7    #number of iterations to wait for improvement before stopping
             no_improve_count = 0 
             best_energy = float("inf")

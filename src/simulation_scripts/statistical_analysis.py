@@ -16,20 +16,21 @@ from qs.functions import blocking as blocking
 from qs.functions.write_to_file import write_to_file as write_to_file
 
 
-def error(filename):
+def error(name_of_file):
     """
     Calls function for std and variance with correct filename
     """
-    data = np.loadtxt(filename)
+    data = np.loadtxt(name_of_file)
     E_ana_array = data[:, 0]  # second column = E_num
+    print(f'VMC energy for {config.nparticles} particles and a={config.a}: {np.mean(E_ana_array):.9f}')
 
     variance_array, error_array, B_list, n_list = blocking.blocking_error(E_ana_array)
 
     return variance_array, error_array, B_list, n_list
 
-filename = Path(__file__).resolve().parents[2] / "data" / f"{config.name_of_file}"
+name_of_file= Path(__file__).resolve().parents[2] / "data" / f"{config.name_of_file}"
 
-variance_array, error_array, B_list, n_list = error(filename)
+variance_array, error_array, B_list, n_list = error(name_of_file)
 
 
 def plot(x, y):

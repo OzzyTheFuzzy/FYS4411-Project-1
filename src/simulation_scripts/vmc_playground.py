@@ -40,8 +40,8 @@ def train_and_sample_obd():
 
     results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=config.final_sampling_seed, 
                             num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file, obd=config.obd)
-    print(results)
-    r_centers, rho =results.get("r_centers"), results.get("rho")
+
+    r_centers, rho = results.get("r_centers"), results.get("rho")
 
     if config.write_obd_to_file:
         
