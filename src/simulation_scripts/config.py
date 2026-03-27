@@ -2,7 +2,7 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 10
+nparticles = 100
 dim        = 3
 wf_type    = "vmc" 
 beta       = 2.82843    # for wavefunction with eliptical trap set beta 2.82843, for spherical trap set beta = 1

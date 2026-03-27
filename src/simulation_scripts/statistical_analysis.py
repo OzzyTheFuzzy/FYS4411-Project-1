@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from qs.functions import blocking as blocking
+from qs.functions.write_to_file import write_to_file as write_to_file
 
 
 def error(filename):
@@ -27,7 +28,7 @@ def error(filename):
     return variance_array, error_array, B_list, n_list
 
 filename = Path(__file__).resolve().parents[2] / "data" / f"{config.name_of_file}"
-print(filename)
+
 variance_array, error_array, B_list, n_list = error(filename)
 
 
@@ -44,4 +45,7 @@ def plot(x, y):
 
 plot(B_list, error_array)
 
-print(f"The SEM for N={config.nparticles} particles and a={config.a} is {error_array[-1]:.5f}", )
+# write statistical data to file
+write_to_file(arrays=[variance_array, error_array, B_list, n_list], 
+              names=["Variance (Varr)", "Standard Error (SEM)", "Block Size (B)", "Number of Blocks (n)"],
+                name_of_file=f"error_analysis_a{config.a}_N{config.nparticles}.txt")
