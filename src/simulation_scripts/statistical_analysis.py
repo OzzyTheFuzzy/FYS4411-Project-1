@@ -1,5 +1,6 @@
-#statistical_analysis.py
-# Add src/ (the parent directory) to Python path to import functions
+
+# This script performs the statistical analysis of the VMC energy data 
+# this program uses config.py for configuration, and the data file generated during the final sampling in sample_column_density.py 
 import sys
 import matplotlib.pyplot as plt
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
@@ -34,6 +35,12 @@ variance_array, error_array, B_list, n_list = error(name_of_file)
 
 
 def plot(x, y):
+    """ Plots the standard error of the mean as a function of block size B """
+
+    name_of_plot=f"error_plot_a{config.a}_N{config.nparticles}.pdf"
+
+    if config.beta is None:
+        name_of_plot=f"error_plot_a{config.a}_N{config.nparticles}_spherical.pdf"
 
     plt.figure()
     plt.plot(x, y, marker="o")
@@ -41,12 +48,17 @@ def plot(x, y):
     plt.ylabel("Standard error of the mean")
     plt.title(f"Standard error of the mean vs block size for N={config.nparticles}")
     plt.grid(True)
-    plt.savefig(Path(__file__).resolve().parents[2] / "figures" / f"error_plot_a{config.a}_N{config.nparticles}.pdf")
+    plt.savefig(Path(__file__).resolve().parents[2] / "figures" / name_of_plot)
     plt.show()
 
 plot(B_list, error_array)
 
-# write statistical data to file
+# write statistical data to file for spherical an non-spherical case
+if config.beta is None:
+    name_of_file=f"error_analysis_a{config.a}_N{config.nparticles}_spherical.txt"
+else:
+    name_of_file=f"error_analysis_a{config.a}_N{config.nparticles}.txt"
+
 write_to_file(arrays=[variance_array, error_array, B_list, n_list], 
               names=["Variance (Varr)", "Standard Error (SEM)", "Block Size (B)", "Number of Blocks (n)"],
-                name_of_file=f"error_analysis_a{config.a}_N{config.nparticles}.txt")
+                name_of_file=name_of_file)

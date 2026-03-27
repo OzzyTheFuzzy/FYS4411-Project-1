@@ -1,5 +1,5 @@
 #Program for finding alpha with steepest_descent and plotting alpha vs iteration
-
+# (uses config_steepest_descent_vmc.py as configuration)
 import sys
 import numpy as np
 from pathlib import Path
