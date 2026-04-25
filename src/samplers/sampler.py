@@ -31,9 +31,7 @@ class Sampler:
         self.set_hamiltonian(hamiltonian)
         
 
-
-
-    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False, obd=False):
+    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False, obd=False, write_pos_to_file=False):
         """
         Run an MCMC batch at fixed alpha and return:
         - E_ana: tensor of analytic local energies (shape [n_samples])
@@ -49,7 +47,8 @@ class Sampler:
         O_list = [] if need_O else None
         counts = torch.zeros((state.n_bins,), dtype=torch.float64) if state.obd else None
         r_centers = None; shell_volumes = None; count=None #define 
-
+        
+        r_all=[]
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
         
@@ -57,6 +56,10 @@ class Sampler:
                 continue
 
             r = state.positions
+
+            if write_pos_to_file:
+                r_all.append(r.detach().cpu().numpy())
+
             nparticles = r.shape[0]
             if num:
                 E_ana, t_ana, V = self.hamiltonian.local_energy(wf, r, num=True)
@@ -85,6 +88,10 @@ class Sampler:
         O = torch.stack(O_list) if need_O else None
 
         accept_rate = state.n_accepted / MC_training_cycles
+        #for the position
+        if write_pos_to_file:
+            r_all = np.array(r_all)
+            return r_all, E_ana
         
         if num:
             return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
@@ -98,7 +105,7 @@ class Sampler:
         else:
             return E_ana, E_num, O, accept_rate
 
-    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy", obd=False):
+    def _sample(self, wf, nsamples, state, scale, seed, chain_id, burn_in=0, num=False, write_to_file=False, name_of_file="energy", obd=False, write_pos_to_file=False):
         """
         Function for final sampling 
         """
@@ -123,13 +130,25 @@ class Sampler:
                 burn_in=burn_in,
                 num=num, obd=obd)
 
-            else:   
-                E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
-                wf=wf, state=state,
-                MC_training_cycles=nsamples, 
-                seed=seed, 
-                burn_in=burn_in,
-                num=num, )
+            else:
+                if write_pos_to_file:
+
+                    r_all, E_ana = self._sample_energy_and_optional_O(
+                    wf=wf, state=state,
+                    MC_training_cycles=nsamples, 
+                    seed=seed, 
+                    burn_in=burn_in,
+                    num=num, write_pos_to_file=write_pos_to_file)
+
+                    return r_all, E_ana
+                
+                else:
+                    E_ana, E_num, _, accept_rate= self._sample_energy_and_optional_O(
+                    wf=wf, state=state,
+                    MC_training_cycles=nsamples, 
+                    seed=seed, 
+                    burn_in=burn_in,
+                    num=num)
 
         n_effective = nsamples - burn_in
         

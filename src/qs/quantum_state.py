@@ -187,8 +187,8 @@ class QS:
             #inde for seeds so every alpha gets a different see
             
             # create tensor for current alpha and retrieve alpha value
-            
-            if alpha_0 == 0.0 or None:
+            print(f'alpha: {alpha_0}')
+            if alpha_0 is None or alpha_0 == 0.0:
                 alpha = alpha_i
                 
                 a_tensor = torch.tensor(float(alpha), dtype=torch.float64)
@@ -230,6 +230,7 @@ class QS:
                     need_O=need_O,
                     num=num,
                 )
+            
             # change for every alpha
             idx += 10
             # compute mean energies
@@ -278,7 +279,9 @@ class QS:
         if self.logger is not None:
             self.logger.info("Training done")
 
-    def sample(self, nsamples, final_burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy", obd=False):
+    def sample(self, nsamples, final_burn_in, nchains=1, seed=None, 
+               num=False, write_to_file=False, name_of_file="energy", 
+               obd=False, write_pos_to_file=False):
     
         """helper for the sample method from the Sampler class"""
         
@@ -291,10 +294,16 @@ class QS:
 
         self.sampler.scale = self._scale * np.sqrt(1.0 / self.wf.alpha.item())
         # call the sample method from the sampler class
+
+        #if you only want positions and energies (for Project 2)
+        if write_pos_to_file:
+            r_all, E_ana = self.sampler._sample(wf=self.wf, nsamples=nsamples, state=self._make_initial_state(),scale=self.sampler.scale, seed=seed, chain_id=0, burn_in=final_burn_in, write_pos_to_file=write_pos_to_file)
+            return r_all, E_ana
+        
         self._results = self.sampler._sample(wf=self.wf, nsamples=nsamples, state=self._make_initial_state(),
         scale=self.sampler.scale, seed=seed, chain_id=0, burn_in=final_burn_in, num=num,
-        write_to_file=write_to_file, name_of_file=name_of_file, obd=obd
-    )
+        write_to_file=write_to_file, name_of_file=name_of_file, obd=obd)
+
         return self._results
     
 

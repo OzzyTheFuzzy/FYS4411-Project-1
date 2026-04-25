@@ -62,7 +62,6 @@ class Metropolis(Sampler):
         if new_delta % 100 == 0:
             new_logp = wf.wf.log_prob(new_positions)
         """
-
         new_state = State(
             positions=new_positions,
             logp=new_logp,
