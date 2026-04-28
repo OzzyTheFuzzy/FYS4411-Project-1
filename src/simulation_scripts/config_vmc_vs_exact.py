@@ -10,7 +10,7 @@ dimensions = np.array([1, 2, 3])
 wf_type = "vmc"
 beta = 1               # for elliptical trap set beta != 1, for spherical set beta = 1
 omega = 1.0
-omega_z = None          # for elliptical trap set omega_z = beta, for spherical set omega_z = 1.0
+omega_z = 1.0         # for elliptical trap set omega_z = beta, for spherical set omega_z = 1.0
 
 """ Monte Carlo parameters """
 nsamples = int(2**20)  # samples for the final calculation of the energy after training
