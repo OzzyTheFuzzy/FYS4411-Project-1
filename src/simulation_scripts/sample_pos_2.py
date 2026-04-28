@@ -39,8 +39,8 @@ def train_and_sample():
 
 system, results = train_and_sample()
 
-data = np.load(data_dir / "r_all_E_N1_d3.npz")
-r_all = data["r_all"]
-E_ana = data["E"]
+#data = np.load(data_dir / "r_all_E_N1_d3.npz")
+#r_all = data["r_all"]
+#E_ana = data["E"]
 
-print(r_all.shape)
+#rint(r_all.shape)

@@ -188,7 +188,7 @@ class QS:
             
             # create tensor for current alpha and retrieve alpha value
             
-            if alpha_0 == 0.0 or None:
+            if alpha_0 == 0.0 or alpha_0 == None:
                 alpha = alpha_i
                 
                 a_tensor = torch.tensor(float(alpha), dtype=torch.float64)

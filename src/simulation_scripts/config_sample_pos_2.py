@@ -4,16 +4,16 @@ import numpy as np
 
 """ System parameters"""
 nparticles = 100
-dim        = 3 
+dim        = 3
 wf_type    = "vmc" 
 beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
-omega_z    = beta    # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
+omega_z    = beta     # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
 omega      = 1.0  # harmonic oscillator frequency
 
 """ Monte Carlo parameters"""
-training_cycles = 1000       # this is cycles for training
+training_cycles = 10000       # this is cycles for training
 mcmc_alg        = "langevin" # "metropolis" or "langevin"
-scale          =  0.5        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
+scale          =  0.25        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True

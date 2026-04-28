@@ -6,7 +6,7 @@ import time
 
 data_dir = Path(__file__).resolve().parents[2] / "data"
 sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
-
+pos_dir =  Path(__file__).resolve().parents[2] / "positions_energy_data"
 import jax
 import numpy as np
 import torch
@@ -49,7 +49,7 @@ class Sampler:
         O_list = [] if need_O else None
         counts = torch.zeros((state.n_bins,), dtype=torch.float64) if state.obd else None
         r_centers = None; shell_volumes = None; count=None #define 
-
+        r_all=[] # to save all positions when seed=24
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
         
@@ -57,6 +57,10 @@ class Sampler:
                 continue
 
             r = state.positions
+            N, dim = r.shape
+            if seed == 24:
+                r_all.append(r.detach().cpu().numpy())
+
             nparticles = r.shape[0]
             if num:
                 E_ana, t_ana, V = self.hamiltonian.local_energy(wf, r, num=True)
@@ -85,7 +89,11 @@ class Sampler:
         O = torch.stack(O_list) if need_O else None
 
         accept_rate = state.n_accepted / MC_training_cycles
-        
+
+        if seed==24: #can just call this function from a seperate place!
+            r_all = np.array(r_all)
+            np.savez(pos_dir / f"r_all_E_N{nparticles}_d{dim}_beta{wf.beta}_a{wf.a}.npz", r_all=r_all, E=E_ana)
+            
         if num:
             return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
         
