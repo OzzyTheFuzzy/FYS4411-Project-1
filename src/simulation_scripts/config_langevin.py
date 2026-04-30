@@ -7,7 +7,7 @@ import numpy as np
 nparticles = 100 
 dim        = 3
 wf_type    = "vmc" 
-beta       = 1  #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
+beta       = None #2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
 omega_z    = 1    # for elliptical trap set omega_z = beta, for spherical trap set omega_z = 1
 omega      = 1.0  # harmonic oscillator frequency
 
