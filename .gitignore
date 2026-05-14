@@ -237,5 +237,8 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,jupyternotebooks,macos
-positions_energy_data/
+positions_energy_data2/
 *.npz
+
+positions_energy_data/
+*.dat

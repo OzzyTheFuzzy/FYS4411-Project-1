@@ -30,10 +30,7 @@ class Sampler:
         self.burn_in = None
         self.set_hamiltonian(hamiltonian)
         
-
-
-
-    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O = False, num= False, obd=False):
+    def _sample_energy_and_optional_O(self, wf, state, MC_training_cycles, seed, burn_in=0, need_O=False, num=False, obd=False):
         """
         Run an MCMC batch at fixed alpha and return:
         - E_ana: tensor of analytic local energies (shape [n_samples])
@@ -48,26 +45,38 @@ class Sampler:
         t_num_tot = 0
         O_list = [] if need_O else None
         counts = torch.zeros((state.n_bins,), dtype=torch.float64) if state.obd else None
-        r_centers = None; shell_volumes = None; count=None #define 
-        r_all=[] # to save all positions when seed=24
+        r_centers = None; shell_volumes = None; count = None  # define
+
+        # Get N and dim from state before the loop for memmap pre-allocation
+        N, dim = state.positions.shape
+        n_samples = MC_training_cycles - burn_in
+
+        if seed == 24:
+            os.makedirs(pos_dir, exist_ok=True)
+            mmap_path = pos_dir / f"r_all_N{N}_d{dim}_beta{wf.beta}_a{wf.a}.dat"
+            r_mmap = np.memmap(mmap_path, dtype='float64', mode='w+', shape=(n_samples, N, dim))
+            step_idx = 0
+
         for i in range(MC_training_cycles):
             state = self.step(wf, state, seed)
-        
+
             if i < burn_in:
                 continue
 
             r = state.positions
             N, dim = r.shape
+
             if seed == 24:
-                r_all.append(r.detach().cpu().numpy())
+                r_mmap[step_idx] = r.detach().cpu().numpy()
+                step_idx += 1
 
             nparticles = r.shape[0]
             if num:
                 E_ana, t_ana, V = self.hamiltonian.local_energy(wf, r, num=True)
-                t_ana_tot+=t_ana
+                t_ana_tot += t_ana
 
                 E_num, t_num = self.hamiltonian.numerical_energy(wf, r, V)
-                t_num_tot+=t_num
+                t_num_tot += t_num
 
                 E_num_list.append(E_num.detach())
                 E_ana_list.append(E_ana.detach())
@@ -81,28 +90,25 @@ class Sampler:
 
             if obd:
                 r_centers, count, annulus_areas = accumulate_column_density(r, state.n_bins, r_max=state.r_max)
-                counts+=count
-
-
+                counts += count
+        if seed == 24:
+            r_mmap.flush()  # ensure data is written to disk
+           
         E_ana = torch.stack(E_ana_list)
         E_num = torch.stack(E_num_list) if num else None
         O = torch.stack(O_list) if need_O else None
 
         accept_rate = state.n_accepted / MC_training_cycles
 
-        if seed==24: #can just call this function from a seperate place!
-            r_all = np.array(r_all)
-            np.savez(pos_dir / f"r_all_E_N{nparticles}_d{dim}_beta{wf.beta}_a{wf.a}.npz", r_all=r_all, E=E_ana)
-            
         if num:
-            return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot 
-        
+            return E_ana, E_num, O, accept_rate, t_ana_tot, t_num_tot
+
         if obd:
             rho = compute_column_density(counts, annulus_areas, nparticles, MC_training_cycles - burn_in)
             integral = torch.sum(rho * annulus_areas)
             print(integral)
             return E_ana, E_num, O, accept_rate, rho, r_centers
-        
+
         else:
             return E_ana, E_num, O, accept_rate
 

@@ -32,9 +32,9 @@ def train_and_sample():
 
     # make initial state for final sampling and run final sampling
     system._make_initial_state()
-
+    # set seed =24 for writing positions to file
     results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=24, 
-                            num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
+                           num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
     return system, results
 
 system, results = train_and_sample()

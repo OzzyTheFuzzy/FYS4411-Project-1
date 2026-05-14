@@ -3,22 +3,22 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 100
+nparticles = 10
 dim        = 3
 wf_type    = "vmc" 
-beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = 1
+beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
 omega_z    = beta     # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
 omega      = 1.0  # harmonic oscillator frequency
 
 """ Monte Carlo parameters"""
-training_cycles = 10000       # this is cycles for training
+training_cycles = 120000       # this is cycles for training
 mcmc_alg        = "langevin" # "metropolis" or "langevin"
 scale          =  0.25        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(100000)  # 2**18 = 262144
+nsamples        = int(1000000)  # 2**18 = 262144
 seed            = 24
 final_burn_in   = int(nsamples//10)*2
 
@@ -39,4 +39,4 @@ eta         = 0.001   # learning rate for alpha updates (0.01 is good choice)
 need_O = False
 
 """ Inteaction parameter"""
-a = 0.0    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
+a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
