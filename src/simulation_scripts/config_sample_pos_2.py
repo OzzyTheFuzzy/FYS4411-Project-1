@@ -3,11 +3,11 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 50
+nparticles = 1
 dim        = 3
 wf_type    = "vmc" 
-beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
-omega_z    = beta     # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
+beta       = None    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
+omega_z    = 1.0     # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
 omega      = 1.0  # harmonic oscillator frequency
 
 """ Monte Carlo parameters"""
