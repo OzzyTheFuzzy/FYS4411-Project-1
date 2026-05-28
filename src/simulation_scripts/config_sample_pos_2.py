@@ -3,7 +3,7 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 10
+nparticles = 50
 dim        = 3
 wf_type    = "vmc" 
 beta       = 2.82843    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
@@ -18,7 +18,7 @@ backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(1000000)  # 2**18 = 262144
+nsamples        = int(1000000)  
 seed            = 24
 final_burn_in   = int(nsamples//10)*2
 
@@ -39,4 +39,4 @@ eta         = 0.001   # learning rate for alpha updates (0.01 is good choice)
 need_O = False
 
 """ Inteaction parameter"""
-a = 0.0043    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
+a = 0.0    # Jastrow factor strength, set to 0 for no interactions and to 0.0043 with beta=2.82843 to get the same energy as in project 1 for 10 particles in 3D with elliptical trap. For spherical trap set a=0.
