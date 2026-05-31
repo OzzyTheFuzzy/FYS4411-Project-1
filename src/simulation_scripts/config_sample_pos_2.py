@@ -3,22 +3,22 @@
 import numpy as np
 
 """ System parameters"""
-nparticles = 1
-dim        = 3
+nparticles = 1  # does not matter here 
+dim        = 3  # does not matter here 
 wf_type    = "vmc" 
 beta       = None    # for wavefunction with eliptical trap set beta not 0, for spherical trap set beta = None
 omega_z    = 1.0     # for elliptical trap set omega_z = beta, for spherical trap set omega_z =1.0
 omega      = 1.0  # harmonic oscillator frequency
 
 """ Monte Carlo parameters"""
-training_cycles = 120000       # this is cycles for training
+training_cycles = 12000       # small number since we have the correct alpha
 mcmc_alg        = "langevin" # "metropolis" or "langevin"
 scale          =  0.25        # scale for the new proposed position in metropolis algorithm (metropolis 0.2, langevin 0.5)
 backend         = "torch"
 batch_size      = 200
 detailed        = True
 num             = False      # Set num=True to calculate the second derivatives with numerical derivation
-nsamples        = int(1000000)  
+nsamples = int(1000000)    # huge number for making configurations for PINN in PJ2 
 seed            = 24
 final_burn_in   = int(nsamples//10)*2
 
@@ -28,8 +28,8 @@ alpha_array         = np.array([0.5]) # array of alpha values to train on
 nchains             = 1 # number of Markov chains
 write_to_file       = False   # True if you want to write energies to file
 write_to_file_training= False    # True if you want to write energies vs alpha during training to file
-name_of_file        = f"testing{nparticles}_d{dim}"  #  name of txt file for energies of last sample
-filename            = f'energy_vs_alpha_{mcmc_alg}.txt' # name of txt file for energies vs alpha during training
+name_of_file        = f"testing{nparticles}_d{dim}"  #  # does not matter here 
+filename            = f'energy_vs_alpha_{mcmc_alg}.txt' # # does not matter here 
 
 """ Gradient descent parameters"""
 optimizer = "gd"      # "gd" for gradient descent, "adam" for Adam optimizer

@@ -1,46 +1,75 @@
-#sample_pos_2.py
-
-# For training and writing to file. Also for making plots for E(alpha) vs alpha
 import sys
-import matplotlib.pyplot as plt
 from pathlib import Path
-#sys.path.append("/Users/oskarfausko/Desktop/compfys 2/Project1/project1/FYS4411-Template/src/") # append yout path to the src folder
-# Project paths
+
+import jax
+
 project_root = Path(__file__).resolve().parents[2]
 src_path = project_root / "src"
 data_dir = project_root / "positions_energy_data"
 
 sys.path.insert(0, str(src_path))
 sys.path.insert(0, str(src_path / "simulation_scripts"))
-from qs.functions.write_to_file import write_to_file
 
-import jax
-import numpy as np
-import sys
-import matplotlib.pyplot as plt
 from qs.functions import vmc_and_exact_energy as vmc_and_exact_energy
-import config_sample_pos_2 as config  
+import config_sample_pos_2 as spherical_config
+import config_sample_pos_2_anisotropic as anisotropic_config
 
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 
 
-def train_and_sample():
+def run_case(config, dim, nparticles, a):
 
-    system = vmc_and_exact_energy.find_energy_vmc(config.dim, config.nparticles, config, config.scale)
 
-    # make initial state for final sampling and run final sampling
+    output_file = data_dir / f"r_all_N{nparticles}_d{dim}_beta{config.beta}_a{a}.dat"
+    if output_file.exists():
+        print(f"Skipping existing file: {output_file.name}")
+        return None, None
+    config.dim=dim
+    config.nparticles=nparticles
+    config.a=a
+    system = vmc_and_exact_energy.find_energy_vmc(dim, nparticles, config, config.scale)
     system._make_initial_state()
-    # set seed =24 for writing positions to file
-    results = system.sample(config.nsamples, config.final_burn_in, nchains=config.nchains, seed=24, 
-                           num=config.num, write_to_file=config.write_to_file, name_of_file=config.name_of_file)
+    results = system.sample(
+        config.nsamples,
+        config.final_burn_in,
+        nchains=config.nchains,
+        seed=24,
+        num=config.num,
+        write_to_file=config.write_to_file,
+        name_of_file=config.name_of_file,
+    )
     return system, results
 
-system, results = train_and_sample()
 
-#data = np.load(data_dir / "r_all_E_N1_d3.npz")
-#r_all = data["r_all"]
-#E_ana = data["E"]
+def main():
+    sweeps = [
+        (
+            spherical_config,
+            [
+                (1, 1,  0.0),
+                (3, 1,  0.0),
+                (1, 2,  0.0),
+                (3, 2,  0.0),
+                (3, 10, 0.0),
+            ],
+        ),
+        (
+            anisotropic_config,
+            [
+                (3, 2,  0.0),
+                (3, 10, 0.0),
+            ],
+        ),
+    ]
 
-#rint(r_all.shape)
+    for config, cases in sweeps:
+        trap = "anisotropic" if config.beta is not None else "spherical"
+        for dim, nparticles, a in cases:
+            print(f"Running {trap} case: N={nparticles}, d={dim}, beta={config.beta}, a={a}")
+            run_case(config, dim, nparticles, a)
+
+
+if __name__ == "__main__":
+    main()

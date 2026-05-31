@@ -276,7 +276,7 @@ class QS:
 
         self._is_trained_ = True
         if self.logger is not None:
-            self.logger.info("Training done")
+            self.logger.info("Training done, starting long sampling ")
 
     def sample(self, nsamples, final_burn_in, nchains=1, seed=None, num=False, write_to_file=False, name_of_file="energy", obd=False):
     

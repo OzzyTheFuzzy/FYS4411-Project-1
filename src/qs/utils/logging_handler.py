@@ -24,9 +24,13 @@ def setup_logger(name, level="INFO"):
     )
 
     logger = logging.getLogger(name)
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    # Avoid adding multiple handlers to the same logger (causes duplicated output)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    # Prevent messages from being propagated to the root logger (which may also have handlers)
+    logger.propagate = False
 
     level = level.upper()
     if level not in ALLOWED_LEVELS:
